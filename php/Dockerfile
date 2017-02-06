@@ -5,5 +5,6 @@ RUN apt-get update \
     && apt-get -y --no-install-recommends install  php7.0-mongodb \
     && apt-get clean; rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
 
+COPY web/* /var/www/web/
 
 WORKDIR "/var/www/web"
