@@ -1,0 +1,40 @@
+<html ng-app="playerApp">
+<head>
+<title>JKA Demo Archive</title>
+<link rel="stylesheet" href="jquery-ui-1.10.4.custom.css">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.2/angular.min.js"></script>
+<script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+<script src="jquery.ba-bbq.min.js"></script>
+<script src="moment.min.js"></script>
+<script src="sprintf.js"></script>
+<script src="aplayer.js"></script>
+<!-- Stuff needed on initial load is loaded as JSONP -->
+<script src="minrpc.php?rpc=numdemos&jsonp=true"></script>
+<script src="playerrpc.php?rpc=checkmerge&jsonp=true"></script>
+<style type="text/css">
+.is_match_true {
+  font-weight: bold;
+}
+</style>
+</head>
+<body ng-controller="PlayerCtrl">
+<h1>JKA Demo Archive</h1>
+<h2>Now hosting <span id="numdemos"></span> demos</h2>
+<h2>Player <span ng-bind-html="player.names[0].name"></span>:</h2>
+Rating: {{player.rating.friendly}}
+<p>
+Names:
+<ul>
+  <li ng-repeat="name in player.names | limitTo:10">
+    <span ng-bind-html="name.name"></span>: {{name.time}}
+  </li>
+</ul>
+Matches:
+<ul>
+  <li ng-repeat="match in player.matches | filter:{is_match: true, rating: {}} | limitTo:100">
+    <a href="match.html#rpc=lookup&id={{match._id.match}}" class="is_match_{{match.is_match}}">{{match.time}}</a>: {{match.client_num}} {{match.score.team}}: {{match.rating.start.friendly}}:{{match.rating.updated.friendly}} - <span ng-repeat="name in match.names"><span ng-bind-html="name.name"></span> <span ng-show="!$last">|</span> </span>
+  </li>
+</ul>
+</body>
+</html>

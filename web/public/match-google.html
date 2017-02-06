@@ -1,0 +1,39 @@
+<html>
+<head>
+<link rel="stylesheet" href="//googledrive.com/host/0B3o1kWC8ohHfZjB1R3h1R2xGZ00/jquery-ui-1.10.4.custom.css">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+<script src="//googledrive.com/host/0B3o1kWC8ohHfZjB1R3h1R2xGZ00/moment.min.js"></script>
+<script src="//googledrive.com/host/0B3o1kWC8ohHfZjB1R3h1R2xGZ00/sprintf.js"></script>
+<script src="//googledrive.com/host/0B3o1kWC8ohHfZjB1R3h1R2xGZ00/matchrpc.js"></script>
+<!-- Stuff needed on initial load is loaded as JSONP -->
+<script src="minrpc.php?rpc=numdemos&jsonp=true"></script>
+<script src="minrpc.php?rpc=recentmatches&jsonp=true"></script>
+<script src="minrpc.php?rpc=topnames&jsonp=true"></script>
+<script src="minrpc.php?rpc=topmaps&jsonp=true"></script>
+<script src="minrpc.php?rpc=topservers&jsonp=true"></script>
+</head>
+<body>
+<h2>Now hosting <span id="numdemos"></span> demos</h2>
+Search:<br>
+<form id="search">
+<label for="player">Player name</label>
+<input type="text" name="player" size="30"/>
+<label for="before">Before date</label>
+<input type="text" name="before"/>
+<label for="map">Map</label>
+<input type="text" name="map" size="20"/>
+<label for="server">Server</label>
+<input type="text" name="server" size="30"/>
+<label for="match">Is match</label>
+<input type="checkbox" name="match" checked="checked"/>
+<input type="submit" value="Search"/>
+</form>
+<p/>
+<span id="searchresult">Recent matches:</span><br>
+<table id="recentdemos" border="1">
+<tr><td>Server</td><td>Date</td><td>Map</td><td>Duration</td></tr>
+</table>
+<span id="page"></span>
+</body>
+</html>
