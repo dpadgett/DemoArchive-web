@@ -1,0 +1,32 @@
+<html>
+<head>
+<title>JKA Demo Archive</title>
+<link rel="stylesheet" href="jquery-ui-1.10.4.custom.css">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+<script src="jquery.ba-bbq.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.4/build/jquery.datetimepicker.full.min.js"></script>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.4/build/jquery.datetimepicker.min.css">
+</head>
+Download all demos in demo archive between:<br>
+<form method="GET" action="minrpc.py">
+<input type="hidden" name="rpc" value="bundle"/>
+<label for="start">Start date</label>
+<input type="text" name="start"/>
+<label for="end">End date</label>
+<input type="text" name="end"/>
+<input type="submit" value="Download"/>
+</form>
+<script type="text/javascript">
+$(document).ready(function()
+{
+  var picker = function(element) {
+    element.datetimepicker({
+      format:'U'
+    });
+  };
+  picker($('input[name="start"]'));
+  picker($('input[name="end"]'));
+});
+</script>
+</html>
