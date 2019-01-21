@@ -6,6 +6,7 @@ use MongoDB\Client;
 use MongoDB\Driver\ReadConcern;
 use MongoDB\Driver\ReadPreference;
 use MongoDB\Driver\WriteConcern;
+use MongoDB\Exception\InvalidArgumentException;
 
 /**
  * Unit tests for the Client class.
@@ -20,11 +21,11 @@ class ClientTest extends TestCase
     }
 
     /**
-     * @expectedException MongoDB\Exception\InvalidArgumentException
      * @dataProvider provideInvalidConstructorDriverOptions
      */
     public function testConstructorDriverOptionTypeChecks(array $driverOptions)
     {
+        $this->expectException(InvalidArgumentException::class);
         new Client($this->getUri(), [], $driverOptions);
     }
 
@@ -48,8 +49,6 @@ class ClientTest extends TestCase
 
     public function testSelectCollectionInheritsOptions()
     {
-        $this->markTestSkipped('Depends on https://jira.mongodb.org/browse/PHPC-523');
-
         $uriOptions = [
             'readConcernLevel' => ReadConcern::LOCAL,
             'readPreference' => 'secondaryPreferred',
@@ -112,8 +111,6 @@ class ClientTest extends TestCase
 
     public function testSelectDatabaseInheritsOptions()
     {
-        $this->markTestSkipped('Depends on https://jira.mongodb.org/browse/PHPC-523');
-
         $uriOptions = [
             'readConcernLevel' => ReadConcern::LOCAL,
             'readPreference' => 'secondaryPreferred',

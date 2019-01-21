@@ -3,9 +3,13 @@
 namespace Alcaeus\MongoDbAdapter\Tests;
 
 use MongoDB\Client;
+use PHPUnit\Framework\TestCase as BaseTestCase;
 
-abstract class TestCase extends \PHPUnit_Framework_TestCase
+abstract class TestCase extends BaseTestCase
 {
+    const INDEX_VERSION_1 = 1;
+    const INDEX_VERSION_2 = 2;
+
     protected function tearDown()
     {
         $this->getCheckDatabase()->drop();
@@ -120,7 +124,7 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
         $result = $adminDb->command($doc);
         $arr = current($result->toArray());
         if (empty($arr->ok)) {
-            throw new RuntimeException("Failpoint failed");
+            throw new \RuntimeException("Failpoint failed");
         }
 
         return true;
@@ -135,7 +139,7 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
             /* command not found */
             if ($e->getCode() == 59) {
                 $this->markTestSkipped(
-                  'This test require the mongo daemon to be started with the test flag: --setParameter enableTestCommands=1'
+                    'This test require the mongo daemon to be started with the test flag: --setParameter enableTestCommands=1'
                 );
             }
         }
@@ -162,5 +166,39 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
         if ($condition) {
             $this->markTestSkipped('Test only applies when running against mongo-php-adapter');
         }
+    }
+
+    /**
+     * @return string
+     */
+    protected function getServerVersion()
+    {
+        $serverInfo = $this->getDatabase()->command(['buildinfo' => true]);
+        return $serverInfo['version'];
+    }
+
+    /**
+     * @return string
+     */
+    protected function getFeatureCompatibilityVersion()
+    {
+        $featureCompatibilityVersion = $this->getClient()->selectDB('admin')->command(['getParameter' => true, 'featureCompatibilityVersion' => true]);
+        return isset($featureCompatibilityVersion['featureCompatibilityVersion']) ? $featureCompatibilityVersion['featureCompatibilityVersion'] : '3.2';
+    }
+
+    /**
+     * Indexes created in MongoDB 3.4 default to v: 2.
+     * @return int
+     * @see https://docs.mongodb.com/manual/release-notes/3.4-compatibility/#backwards-incompatible-features
+     */
+    protected function getDefaultIndexVersion()
+    {
+        if (version_compare($this->getServerVersion(), '3.4.0', '<')) {
+            self::INDEX_VERSION_1;
+        }
+
+        // Check featureCompatibilityFlag
+        $compatibilityVersion = $this->getFeatureCompatibilityVersion();
+        return $compatibilityVersion === '3.4' ? self::INDEX_VERSION_2 : self::INDEX_VERSION_1;
     }
 }

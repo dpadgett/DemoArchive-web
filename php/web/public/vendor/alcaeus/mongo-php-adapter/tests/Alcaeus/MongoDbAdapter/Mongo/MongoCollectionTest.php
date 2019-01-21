@@ -2,8 +2,10 @@
 
 namespace Alcaeus\MongoDbAdapter\Tests\Mongo;
 
+use MongoDB\BSON\Regex;
 use MongoDB\Driver\ReadPreference;
 use Alcaeus\MongoDbAdapter\Tests\TestCase;
+use PHPUnit\Framework\Error\Warning;
 
 /**
  * @author alcaeus <alcaeus@alcaeus.org>
@@ -32,7 +34,7 @@ class MongoCollectionTest extends TestCase
             'errmsg' => null,
         ];
         $document = ['foo' => 'bar'];
-        $this->assertSame($expected, $collection->insert($document));
+        $this->assertEquals($expected, $collection->insert($document));
 
         $this->assertInstanceOf('MongoId', $document['_id']);
         $id = (string) $document['_id'];
@@ -50,7 +52,11 @@ class MongoCollectionTest extends TestCase
 
     public function testInsertInvalidData()
     {
-        $this->setExpectedException('PHPUnit_Framework_Error_Warning', 'MongoCollection::insert(): expects parameter 1 to be an array or object, integer given');
+        // Dirty hack to support both PHPUnit 5.x and 6.x
+        $className = class_exists(Warning::class) ? Warning::class : \PHPUnit_Framework_Error_Warning::class;
+        $this->expectException($className);
+
+        $this->expectExceptionMessage('MongoCollection::insert(): expects parameter 1 to be an array or object, integer given');
 
         $document = 8;
         $this->getCollection()->insert($document);
@@ -82,7 +88,8 @@ class MongoCollectionTest extends TestCase
 
     public function testInsertObjectWithPrivateProperties()
     {
-        $this->setExpectedException('MongoException', 'zero-length keys are not allowed, did you use $ with double quotes?');
+        $this->expectException(\MongoException::class);
+        $this->expectExceptionMessage('zero-length keys are not allowed, did you use $ with double quotes?');
 
         $document = new PrivatePropertiesStub();
         $this->getCollection()->insert($document);
@@ -96,11 +103,22 @@ class MongoCollectionTest extends TestCase
         $this->assertSame(1, $this->getCollection()->count(['*' => 'foo']));
     }
 
-    public function testInsertWithEmptyKey()
+    public function getDocumentsWithEmptyKey()
     {
-        $this->setExpectedException('MongoException', 'zero-length keys are not allowed, did you use $ with double quotes?');
+        return [
+            'array' => [['' => 'foo']],
+            'object' => [(object) ['' => 'foo']],
+        ];
+    }
 
-        $document = ['' => 'foo'];
+    /**
+     * @dataProvider getDocumentsWithEmptyKey
+     */
+    public function testInsertWithEmptyKey($document)
+    {
+        $this->expectException(\MongoException::class);
+        $this->expectExceptionMessage('zero-length keys are not allowed, did you use $ with double quotes?');
+
         $this->getCollection()->insert($document);
     }
 
@@ -122,7 +140,10 @@ class MongoCollectionTest extends TestCase
         $collection->insert($document);
 
         unset($document['_id']);
-        $this->setExpectedExceptionRegExp('MongoDuplicateKeyException', '/E11000 duplicate key error .* mongo-php-adapter\.test/');
+
+        $this->expectException(\MongoDuplicateKeyException::class);
+        $this->expectExceptionMessageRegExp('/E11000 duplicate key error .* mongo-php-adapter\.test/');
+        $this->expectExceptionCode(11000);
         $collection->insert($document);
     }
 
@@ -132,12 +153,30 @@ class MongoCollectionTest extends TestCase
         $this->assertTrue($this->getCollection()->insert($document, ['w' => 0]));
     }
 
+    public function testUnacknowledgedWriteWithBooleanValue()
+    {
+        $document = ['foo' => 'bar'];
+        $this->assertTrue($this->getCollection()->insert($document, ['w' => false]));
+    }
+
+    public function testAcknowledgedWriteConcernWithBool()
+    {
+        $document = ['foo' => 'bar'];
+        $this->assertEquals(
+            [
+                'ok' => 1.0,
+                'n' => 0,
+                'err' => null,
+                'errmsg' => null,
+            ],
+            $this->getCollection()->insert($document, ['w' => true])
+        );
+    }
+
     public function testInsertWriteConcernException()
     {
-        $this->setExpectedException(
-            'MongoWriteConcernException',
-            "cannot use 'w' > 1 when a host is not replicated"
-        );
+        $this->expectException(\MongoWriteConcernException::class);
+        $this->expectExceptionMessage("cannot use 'w' > 1 when a host is not replicated");
 
         $document = ['foo' => 'bar'];
         $this->getCollection()->insert($document, ['w' => 2]);
@@ -207,16 +246,20 @@ class MongoCollectionTest extends TestCase
 
     public function testBatchInsertException()
     {
-        $this->setExpectedExceptionRegExp('MongoDuplicateKeyException', '/E11000 duplicate key error .* mongo-php-adapter.test.*_id_/');
-
         $id = new \MongoId();
         $documents = [['_id' => $id, 'foo' => 'bar'], ['_id' => $id, 'foo' => 'bleh']];
+
+        $this->expectException(\MongoDuplicateKeyException::class);
+        $this->expectExceptionMessageRegExp('/E11000 duplicate key error .* mongo-php-adapter.test.*_id_/');
+        $this->expectExceptionCode(11000);
+
         $this->getCollection()->batchInsert($documents);
     }
 
     public function testBatchInsertObjectWithPrivateProperties()
     {
-        $this->setExpectedException('MongoException', 'zero-length keys are not allowed, did you use $ with double quotes?');
+        $this->expectException(\MongoException::class);
+        $this->expectExceptionMessage('zero-length keys are not allowed, did you use $ with double quotes?');
 
         $documents = [new PrivatePropertiesStub()];
         $this->getCollection()->batchInsert($documents);
@@ -230,11 +273,15 @@ class MongoCollectionTest extends TestCase
         $this->assertSame(1, $this->getCollection()->count(['*' => 'foo']));
     }
 
-    public function testBatchInsertWithEmptyKey()
+    /**
+     * @dataProvider getDocumentsWithEmptyKey
+     */
+    public function testBatchInsertWithEmptyKey($document)
     {
-        $this->setExpectedException('MongoException', 'zero-length keys are not allowed, did you use $ with double quotes?');
+        $this->expectException(\MongoException::class);
+        $this->expectExceptionMessage('zero-length keys are not allowed, did you use $ with double quotes?');
 
-        $documents = [['' => 'foo']];
+        $documents = [$document];
         $this->getCollection()->batchInsert($documents);
     }
 
@@ -248,7 +295,8 @@ class MongoCollectionTest extends TestCase
 
     public function testBatchInsertEmptyBatchException()
     {
-        $this->setExpectedException('MongoException', 'No write ops were included in the batch');
+        $this->expectException(\MongoException::class);
+        $this->expectExceptionMessage('No write ops were included in the batch');
 
         $documents = [];
         $this->getCollection()->batchInsert($documents, ['w' => 2]);
@@ -256,7 +304,8 @@ class MongoCollectionTest extends TestCase
 
     public function testUpdateWriteConcern()
     {
-        $this->setExpectedException('MongoWriteConcernException', "cannot use 'w' > 1 when a host is not replicated");
+        $this->expectException(\MongoWriteConcernException::class);
+        $this->expectExceptionMessage("cannot use 'w' > 1 when a host is not replicated");
 
         $this->getCollection()->update([], ['$set' => ['foo' => 'bar']], ['w' => 2]);
     }
@@ -280,7 +329,7 @@ class MongoCollectionTest extends TestCase
         ];
 
         $result = $this->getCollection()->update(['foo' => 'bar'], ['$set' => ['foo' => 'foo']]);
-        $this->assertSame($expected, $result);
+        $this->assertEquals($expected, $result);
 
         $this->assertSame(1, $this->getCheckDatabase()->selectCollection('test')->count(['foo' => 'foo']));
     }
@@ -304,7 +353,7 @@ class MongoCollectionTest extends TestCase
         ];
 
         $result = $this->getCollection()->update(['foo' => 'bar'], ['foo' => 'foo']);
-        $this->assertSame($expected, $result);
+        $this->assertEquals($expected, $result);
 
         $this->assertSame(1, $this->getCheckDatabase()->selectCollection('test')->count(['foo' => 'foo']));
         $this->assertSame(1, $this->getCheckDatabase()->selectCollection('test')->count(['bar' => 'foo']));
@@ -312,7 +361,8 @@ class MongoCollectionTest extends TestCase
 
     public function testUpdateReplaceMultiple()
     {
-        $this->setExpectedExceptionRegExp('MongoWriteConcernException', '/multi update only works with \$ operators/', 9);
+        $this->expectException(\MongoWriteConcernException::class);
+        $this->expectExceptionMessageRegExp('/multi update only works with \$ operators/', 9);
         $this->getCollection()->update(['foo' => 'bar'], ['foo' => 'foo'], ['multiple' => true]);
     }
 
@@ -326,7 +376,7 @@ class MongoCollectionTest extends TestCase
         $document = ['foo' => 'foo'];
         $collection->insert($document);
 
-        $this->setExpectedException('MongoDuplicateKeyException');
+        $this->expectException(\MongoDuplicateKeyException::class);
         $collection->update(['foo' => 'bar'], ['$set' => ['foo' => 'foo']]);
     }
 
@@ -350,9 +400,29 @@ class MongoCollectionTest extends TestCase
         ];
 
         $result = $this->getCollection()->update(['change' => true], ['$set' => ['foo' => 'foo']], ['multiple' => true]);
-        $this->assertSame($expected, $result);
+        $this->assertEquals($expected, $result);
 
         $this->assertSame(3, $this->getCheckDatabase()->selectCollection('test')->count(['foo' => 'foo']));
+    }
+
+    public function testUpdateWhichDoesntMatchQuery()
+    {
+        $document = ['foo' => 'bar'];
+        $this->getCollection()->insert($document);
+
+        $expected = [
+            'ok' => 1.0,
+            'nModified' => 0,
+            'n' => 0,
+            'err' => null,
+            'errmsg' => null,
+            'updatedExisting' => false,
+        ];
+
+        $result = $this->getCollection()->update(['foo' => 'bar22'], ['$set' => ['foo' => 'foo']]);
+        $this->assertEquals($expected, $result);
+
+        $this->assertSame(1, $this->getCheckDatabase()->selectCollection('test')->count(['foo' => 'bar']));
     }
 
     public function testUnacknowledgedUpdate()
@@ -363,6 +433,45 @@ class MongoCollectionTest extends TestCase
         $this->getCollection()->insert($document);
 
         $this->assertTrue($this->getCollection()->update($document, ['$set' => ['foo' => 'foo']], ['w' => 0]));
+    }
+
+    public function testUpdateWithInvalidKey()
+    {
+        $document = ['foo' => 'bar'];
+        $this->getCollection()->insert($document);
+
+        $update_document = ['*' => 'foo'];
+        $this->getCollection()->update($document, $update_document);
+
+        $this->assertSame(1, $this->getCollection()->count(['*' => 'foo']));
+    }
+
+    /**
+     * @dataProvider getDocumentsWithEmptyKey
+     */
+    public function testUpdateWithEmptyKey($updateDocument)
+    {
+        $document = ['foo' => 'bar'];
+        $this->getCollection()->insert($document);
+
+        $this->expectException(\MongoException::class);
+        $this->expectExceptionMessage('zero-length keys are not allowed, did you use $ with double quotes?');
+
+        $this->getCollection()->update($document, $updateDocument);
+    }
+
+    /**
+     * @dataProvider getDocumentsWithEmptyKey
+     */
+    public function testAtomicUpdateWithEmptyKey($updateDocument)
+    {
+        $document = ['foo' => 'bar'];
+        $this->getCollection()->insert($document);
+
+        $this->expectException(\MongoException::class);
+        $this->expectExceptionMessage('zero-length keys are not allowed, did you use $ with double quotes?');
+
+        $this->getCollection()->update($document, ['$set' => $updateDocument]);
     }
 
     public function testRemoveMultiple()
@@ -383,7 +492,7 @@ class MongoCollectionTest extends TestCase
         ];
 
         $result = $this->getCollection()->remove(['foo' => 'bar']);
-        $this->assertSame($expected, $result);
+        $this->assertEquals($expected, $result);
 
         $this->assertSame(1, $this->getCheckDatabase()->selectCollection('test')->count());
     }
@@ -404,7 +513,7 @@ class MongoCollectionTest extends TestCase
         ];
 
         $result = $this->getCollection()->remove(['foo' => 'bar'], ['justOne' => true]);
-        $this->assertSame($expected, $result);
+        $this->assertEquals($expected, $result);
 
         $this->assertSame(2, $this->getCheckDatabase()->selectCollection('test')->count());
     }
@@ -427,6 +536,94 @@ class MongoCollectionTest extends TestCase
         $collection = $this->getCollection();
 
         $this->assertInstanceOf('MongoCursor', $collection->find());
+    }
+
+    /**
+     * @dataProvider dataFindWithProjection
+     */
+    public function testFindWithProjection($projection)
+    {
+        $document = ['foo' => 'foo', 'bar' => 'bar'];
+        $this->getCollection()->insert($document);
+        unset($document['_id']);
+        $this->getCollection()->insert($document);
+
+        $cursor = $this->getCollection()->find(['foo' => 'foo'], $projection);
+        foreach ($cursor as $document) {
+            $this->assertCount(2, $document);
+            $this->assertArrayHasKey('_id', $document);
+            $this->assertArraySubset(['bar' => 'bar'], $document);
+        }
+    }
+
+    public static function dataFindWithProjection()
+    {
+        return [
+            'projection' => [['bar' => true]],
+            'intProjection' => [['bar' => 1]],
+            'legacyProjection' => [['bar']],
+        ];
+    }
+
+    /**
+     * @dataProvider dataFindWithProjectionAndNumericKeys
+     */
+    public function testFindWithProjectionAndNumericKeys($data, $projection, $expected)
+    {
+        $this->getCollection()->insert($data);
+
+        $document = $this->getCollection()->findOne([], $projection);
+        unset($document['_id']);
+        $this->assertSame($expected, $document);
+    }
+
+    public static function dataFindWithProjectionAndNumericKeys()
+    {
+        return [
+            'sequentialIntegersStartingWithOne' => [
+                ['0' => 'foo', '1' => 'bar', '2' => 'foobar'],
+                [1 => true, 2 => true],
+                ['1' => 'bar', '2' => 'foobar'],
+            ],
+            'nonSequentialIntegers' => [
+                ['0' => 'foo', '1' => 'bar', '2' => 'foobar', '3' => 'barfoo'],
+                [1 => true, 3 => true],
+                ['1' => 'bar', '3' => 'barfoo'],
+            ]
+        ];
+    }
+
+    public function testFindWithProjectionAndSequentialNumericKeys()
+    {
+        $this->expectException(\MongoException::class);
+        $this->expectExceptionMessage('field names must be strings', 8);
+        $this->getCollection()->findOne([], [true, false]);
+    }
+
+    /**
+     * @dataProvider dataFindWithProjectionExcludeId
+     */
+    public function testFindWithProjectionExcludeId($projection)
+    {
+        $document = ['foo' => 'foo', 'bar' => 'bar'];
+        $this->getCollection()->insert($document);
+        unset($document['_id']);
+        $this->getCollection()->insert($document);
+
+        $cursor = $this->getCollection()->find(['foo' => 'foo'], $projection);
+        foreach ($cursor as $document) {
+            $this->assertCount(1, $document);
+            $this->assertArrayNotHasKey('_id', $document);
+            $this->assertArraySubset(['bar' => 'bar'], $document);
+        }
+    }
+
+    public static function dataFindWithProjectionExcludeId()
+    {
+        return [
+            'projection' => [['_id' => false, 'bar' => true]],
+            'intProjection' => [['_id' => 0, 'bar' => 1]],
+        ];
     }
 
     public function testCount()
@@ -497,7 +694,7 @@ class MongoCollectionTest extends TestCase
     {
         $this->failMaxTimeMS();
 
-        $this->setExpectedException('MongoExecutionTimeoutException');
+        $this->expectException(\MongoExecutionTimeoutException::class);
 
         $this->getCollection()->count([], ['maxTimeMS' => 1]);
     }
@@ -510,6 +707,26 @@ class MongoCollectionTest extends TestCase
         $this->assertSame(['foo' => 'foo'], $document);
     }
 
+    public function testFindOneWithProjection()
+    {
+        $document = ['foo' => 'foo', 'bar' => 'bar'];
+        $this->getCollection()->insert($document);
+
+        $document = $this->getCollection()->findOne(['foo' => 'foo'], ['bar' => true]);
+        $this->assertCount(2, $document);
+        $this->assertArraySubset(['bar' => 'bar'], $document);
+    }
+
+    public function testFindOneWithLegacyProjection()
+    {
+        $document = ['foo' => 'foo', 'bar' => 'bar'];
+        $this->getCollection()->insert($document);
+
+        $document = $this->getCollection()->findOne(['foo' => 'foo'], ['bar']);
+        $this->assertCount(2, $document);
+        $this->assertArraySubset(['bar' => 'bar'], $document);
+    }
+
     public function testFindOneNotFound()
     {
         $document = $this->getCollection()->findOne(['foo' => 'foo'], ['_id' => false]);
@@ -518,9 +735,9 @@ class MongoCollectionTest extends TestCase
 
     public function testFindOneConnectionIssue()
     {
-        $this->setExpectedException('MongoConnectionException');
+        $this->expectException(\MongoConnectionException::class);
 
-        $client = $this->getClient([], 'mongodb://localhost:28888?connectTimeoutMS=1');
+        $client = $this->getClient([], 'mongodb://localhost:28888/?connectTimeoutMS=1');
         $collection = $client->selectCollection('mongo-php-adapter', 'test');
 
         $collection->findOne();
@@ -644,7 +861,8 @@ class MongoCollectionTest extends TestCase
             ],
         ];
 
-        $this->setExpectedException('MongoResultException', 'Unrecognized pipeline stage name');
+        $this->expectException(\MongoResultException::class);
+        $this->expectExceptionMessage('Unrecognized pipeline stage name');
         $collection->aggregate($pipeline);
     }
 
@@ -654,7 +872,7 @@ class MongoCollectionTest extends TestCase
 
         $this->failMaxTimeMS();
 
-        $this->setExpectedException('MongoExecutionTimeoutException');
+        $this->expectException(\MongoExecutionTimeoutException::class);
 
         $pipeline = [
             [
@@ -830,7 +1048,7 @@ class MongoCollectionTest extends TestCase
         $insertDocument = ['_id' => new \MongoId($id), 'foo' => 'bar'];
         $saveDocument = ['_id' => new \MongoId($id), 'foo' => 'foo'];
         $collection->insert($insertDocument);
-        $this->assertSame($expected, $collection->save($saveDocument));
+        $this->assertEquals($expected, $collection->save($saveDocument));
 
         $newCollection = $this->getCheckDatabase()->selectCollection('test');
         $this->assertSame(1, $newCollection->count());
@@ -843,7 +1061,8 @@ class MongoCollectionTest extends TestCase
         $this->assertAttributeSame('foo', 'foo', $object);
     }
 
-    public function testSavingShouldReplaceTheWholeDocument() {
+    public function testSavingShouldReplaceTheWholeDocument()
+    {
         $id = '54203e08d51d4a1f868b456e';
         $collection = $this->getCollection();
 
@@ -870,7 +1089,7 @@ class MongoCollectionTest extends TestCase
         $document = ['foo' => 'bar'];
         $collection->save($document);
 
-        $this->setExpectedException('MongoDuplicateKeyException');
+        $this->expectException(\MongoDuplicateKeyException::class);
 
         unset($document['_id']);
         $collection->save($document);
@@ -942,7 +1161,8 @@ class MongoCollectionTest extends TestCase
 
     public function testCreateIndexInvalid()
     {
-        $this->setExpectedException('MongoException', 'index specification has no elements');
+        $this->expectException(\MongoException::class);
+        $this->expectExceptionMessage('index specification has no elements');
 
         $this->getCollection()->createIndex([]);
     }
@@ -1018,7 +1238,7 @@ class MongoCollectionTest extends TestCase
 
     public function testCreateIndexesWithDifferentOptions()
     {
-        $this->setExpectedException('MongoResultException');
+        $this->expectException(\MongoResultException::class);
 
         $this->getCollection()->createIndex(['foo' => 1]);
 
@@ -1052,7 +1272,7 @@ class MongoCollectionTest extends TestCase
 
     public function testCreateIndexWithSameNameAndDifferentOptions()
     {
-        $this->setExpectedException('MongoResultException');
+        $this->expectException(\MongoResultException::class);
 
         $this->getCollection()->createIndex(['foo' => 1], ['name' => 'foo']);
 
@@ -1100,7 +1320,8 @@ class MongoCollectionTest extends TestCase
         $collection = $this->getCollection();
         $collection->ensureIndex(['bar' => 1], ['unique' => true]);
 
-        $this->setExpectedException('MongoResultException', 'Index with name: bar_1 already exists with different options');
+        $this->expectException(\MongoResultException::class);
+        $this->expectExceptionMessage('Index with name: bar_1 already exists with different options');
         $collection->ensureIndex(['bar' => 1]);
     }
 
@@ -1113,9 +1334,14 @@ class MongoCollectionTest extends TestCase
             'nIndexesWas' => 2,
             'errmsg' => 'index not found with name [bar_1]',
             'ok' => 0.0,
-            'code' => 27,
         ];
-        $this->assertEquals($expected, $this->getCollection()->deleteIndex('bar'));
+
+        if (version_compare($this->getServerVersion(), '3.4.0', '>=')) {
+            $expected['code'] = 27;
+        }
+
+        // Using assertArraySubset because newer versions (3.4.7?) also return `codeName`
+        $this->assertArraySubset($expected, $this->getCollection()->deleteIndex('bar'));
 
         $this->assertCount(2, iterator_to_array($newCollection->listIndexes()));
     }
@@ -1168,41 +1394,142 @@ class MongoCollectionTest extends TestCase
         $expected = [
             'ok' => 0.0,
             'errmsg' => 'ns not found',
-            'code' => 26,
         ];
-        $this->assertSame($expected, $this->getcollection('nonExisting')->deleteIndexes());
+
+        if (version_compare($this->getServerVersion(), '3.4.0', '>=')) {
+            $expected['code'] = 26;
+        }
+
+        // Using assertArraySubset because newer versions (3.4.7?) also return `codeName`
+        $this->assertArraySubset($expected, $this->getCollection('nonExisting')->deleteIndexes());
     }
 
-    public function testGetIndexInfo()
+    public function dataGetIndexInfo()
     {
-        $collection = $this->getCollection();
-        $collection->createIndex(['foo' => 1]);
-        $collection->createIndex(['bar' => 1], ['unique' => true]);
+        $indexVersion = $this->getDefaultIndexVersion();
 
-        $expected = [
-            [
-                'v' => 1,
-                'key' => ['_id' => 1],
-                'name' => '_id_',
-                'ns' => 'mongo-php-adapter.test',
+        return [
+            'plainIndex' => [
+                'expectedIndex' => [
+                    'v' => $indexVersion,
+                    'key' => ['foo' => 1],
+                    'name' => 'foo_1',
+                    'ns' => 'mongo-php-adapter.test',
+                ],
+                'fields' => ['foo' => 1],
+                'options' => [],
             ],
-            [
-                'v' => 1,
-                'key' => ['foo' => 1],
-                'name' => 'foo_1',
-                'ns' => 'mongo-php-adapter.test',
+            'uniqueIndex' => [
+                'expectedIndex' => [
+                    'v' => $indexVersion,
+                    'key' => ['foo' => 1],
+                    'name' => 'foo_1',
+                    'ns' => 'mongo-php-adapter.test',
+                    'unique' => true,
+                ],
+                'fields' => ['foo' => 1],
+                'options' => ['unique' => true],
             ],
-            [
-                'v' => 1,
-                'key' => ['bar' => 1],
-                'name' => 'bar_1',
-                'ns' => 'mongo-php-adapter.test',
-                'unique' => true,
+            'sparseIndex' => [
+                'expectedIndex' => [
+                    'v' => $indexVersion,
+                    'key' => ['foo' => 1],
+                    'name' => 'foo_1',
+                    'ns' => 'mongo-php-adapter.test',
+                    'sparse' => true,
+                ],
+                'fields' => ['foo' => 1],
+                'options' => ['sparse' => true],
+            ],
+            'ttlIndex' => [
+                'expectedIndex' => [
+                    'v' => $indexVersion,
+                    'key' => ['foo' => 1],
+                    'name' => 'foo_1',
+                    'ns' => 'mongo-php-adapter.test',
+                    'expireAfterSeconds' => 86400,
+                ],
+                'fields' => ['foo' => 1],
+                'options' => ['expireAfterSeconds' => 86400],
+            ],
+            'textIndex' => [
+                'expectedIndex' => [
+                    'v' => $indexVersion,
+                    'key' => [
+                        '_fts' => 'text',
+                        '_ftsx' => 1,
+                    ],
+                    'name' => 'foo_text',
+                    'ns' => 'mongo-php-adapter.test',
+                    'weights' => [
+                        'foo' => 1,
+                    ],
+                    'default_language' => 'english',
+                    'language_override' => 'language',
+                    'textIndexVersion' => version_compare($this->getServerVersion(), '3.2.0', '>=') ? 3 : 2,
+                ],
+                'fields' => ['foo' => 'text'],
+                'options' => [],
+            ],
+            'partialFilterExpression' => [
+                'expectedIndex' => [
+                    'v' => $indexVersion,
+                    'key' => ['foo' => 1],
+                    'name' => 'foo_1',
+                    'ns' => 'mongo-php-adapter.test',
+                    'partialFilterExpression' => [
+                        'bar' => ['$gt' => 1],
+                    ],
+                ],
+                'fields' => ['foo' => 1],
+                'options' => [
+                    'partialFilterExpression' => ['bar' => ['$gt' => 1]],
+                ],
+            ],
+            'geoSpatial' => [
+                'expectedIndex' => [
+                    'v' => $indexVersion,
+                    'key' => ['foo' => '2dsphere'],
+                    'name' => 'foo_2dsphere',
+                    'ns' => 'mongo-php-adapter.test',
+                    '2dsphereIndexVersion' => version_compare($this->getServerVersion(), '3.2.0', '>=') ? 3 : 2,
+                ],
+                'fields' => ['foo' => '2dsphere'],
+                'options' => [],
+            ],
+            'geoHaystack' => [
+                'expectedIndex' => [
+                    'v' => $indexVersion,
+                    'key' => ['foo' => 'geoHaystack', 'bar' => 1],
+                    'name' => 'foo_geoHaystack_bar_1',
+                    'ns' => 'mongo-php-adapter.test',
+                    'bucketSize' => 10,
+                ],
+                'fields' => ['foo' => 'geoHaystack', 'bar' => 1],
+                'options' => ['bucketSize' => 10],
             ],
         ];
+    }
+
+    /**
+     * @dataProvider dataGetIndexInfo
+     */
+    public function testGetIndexInfo($expectedIndex, $fields, $options)
+    {
+        $idIndex = [
+            'v' => $this->getDefaultIndexVersion(),
+            'key' => ['_id' => 1],
+            'name' => '_id_',
+            'ns' => 'mongo-php-adapter.test',
+        ];
+
+        $expectedIndexInfo = [$idIndex, $expectedIndex];
+
+        $collection = $this->getCollection();
+        $collection->createIndex($fields, $options);
 
         $this->assertEquals(
-            $expected,
+            $expectedIndexInfo,
             $collection->getIndexInfo()
         );
     }
@@ -1448,7 +1775,7 @@ class MongoCollectionTest extends TestCase
         $this->markTestSkipped('Test fails on travis-ci - skipped while investigating this');
         $collection = $this->getCollection();
 
-        $this->setExpectedException('MongoResultException');
+        $this->expectException(\MongoResultException::class);
 
         $collection->findAndModify(
             array("inprogress" => false, "name" => "Next promo"),
@@ -1465,7 +1792,7 @@ class MongoCollectionTest extends TestCase
         $id = '54203e08d51d4a1f868b456e';
         $collection = $this->getCollection();
 
-        $this->setExpectedException('MongoExecutionTimeoutException');
+        $this->expectException(\MongoExecutionTimeoutException::class);
 
         $document = $collection->findAndModify(
             ['_id' => new \MongoId($id)],
@@ -1510,8 +1837,6 @@ class MongoCollectionTest extends TestCase
                 'keysPerIndex' => ['mongo-php-adapter.test.$_id_' => 1],
                 'valid' => true,
                 'errors' => [],
-                'warning' => 'Some checks omitted for speed. use {full:true} option to do more thorough scan.',
-                'ok'  => 1.0
             ],
             $result
         );
@@ -1531,14 +1856,16 @@ class MongoCollectionTest extends TestCase
 
     public function testEmptyCollectionName()
     {
-        $this->setExpectedException('Exception', 'Collection name cannot be empty');
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Collection name cannot be empty');
 
         new \MongoCollection($this->getDatabase(), '');
     }
 
     public function testSelectCollectionWithNullBytes()
     {
-        $this->setExpectedException('Exception', 'Collection name cannot contain null bytes');
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Collection name cannot contain null bytes');
 
         new \MongoCollection($this->getDatabase(), 'foo' . chr(0));
     }
@@ -1622,6 +1949,27 @@ class MongoCollectionTest extends TestCase
         $items = iterator_to_array($cursor, false);
         $this->assertCount(1, $items);
         $this->assertCount(1, $items[0]['loveItems']);
+    }
+
+    public static function dataFindWithRegex()
+    {
+        return [
+            'MongoRegex' => [new \MongoRegex('/^foo.*/i')],
+            'BSONRegex' => [new Regex('^foo.*', 'i')],
+        ];
+    }
+
+    /**
+     * @dataProvider dataFindWithRegex
+     */
+    public function testFindWithRegex($regex)
+    {
+        $this->skipTestIf(extension_loaded('mongo'));
+        $document = ['name' => 'FOO 123'];
+        $this->getCollection()->insert($document);
+
+        $cursor = $this->getCollection()->find(['name' => $regex]);
+        $this->assertSame(1, $cursor->count());
     }
 }
 

@@ -6,7 +6,10 @@ Tutorials
 .. toctree::
 
    /tutorial/crud
+   /tutorial/collation
    /tutorial/commands
+   /tutorial/decimal128
    /tutorial/gridfs
    /tutorial/indexes
+   /tutorial/tailable-cursor
    /tutorial/example-data

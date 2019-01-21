@@ -237,11 +237,11 @@ function search($query) {
   $cursor = $collection->find($query, $proj);
   $offset = 0;
   if (isset($_GET['offset'])) {
-    $offset = $_GET['offset'];
+    $offset = (int) $_GET['offset'];
   }
   $limit = 10;
   if (isset($_GET['limit'])) {
-    $limit = $_GET['limit'];
+    $limit = (int) $_GET['limit'];
   }
   $cursor->sort(array('t' => -1));
   $count = $cursor->count();
@@ -258,11 +258,11 @@ function search_matches($query) {
   $cursor = $matches->find($query, array());
   $offset = 0;
   if (isset($_GET['offset'])) {
-    $offset = $_GET['offset'];
+    $offset = (int) $_GET['offset'];
   }
   $limit = 5;
   if (isset($_GET['limit'])) {
-    $limit = $_GET['limit'];
+    $limit = (int) $_GET['limit'];
   }
   $cursor->sort(array('t' => -1));
   $count = $cursor->count();
@@ -279,11 +279,11 @@ function search_players($query, $inflater) {
   $cursor = $players->find($query, array());
   $offset = 0;
   if (isset($_GET['offset'])) {
-    $offset = $_GET['offset'];
+    $offset = (int) $_GET['offset'];
   }
   $limit = 25;
   if (isset($_GET['limit'])) {
-    $limit = $_GET['limit'];
+    $limit = (int) $_GET['limit'];
   }
   $cursor->sort(array('num_matches' => -1));
   $count = $cursor->count();
@@ -463,7 +463,7 @@ function python($script, $input) {
 }
 
 function check_merge_ok() {
-  return $_SERVER['REMOTE_ADDR'] == '127.0.0.1' or $_SERVER['REMOTE_ADDR'] == '89.132.165.81'; //'213.222.142.133';
+  return $_SERVER['REMOTE_ADDR'] == '127.0.0.1' or $_SERVER['REMOTE_ADDR'] == '89.132.165.81' or $_SERVER['REMOTE_ADDR'] == '198.27.210.37'; //'213.222.142.133';
 }
 
 if ($rpc == 'topplayers') {

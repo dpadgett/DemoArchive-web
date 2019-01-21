@@ -41,8 +41,10 @@ class TypeConverter
         switch (true) {
             case $value instanceof TypeInterface:
                 return $value->toBSONType();
+            case $value instanceof BSON\Type:
+                return $value;
             case is_array($value):
-            case is_object($value);
+            case is_object($value):
                 $result = [];
 
                 foreach ($value as $key => $item) {
@@ -88,6 +90,42 @@ class TypeConverter
     }
 
     /**
+     * Converts a projection used in find queries.
+     *
+     * This method handles conversion from the legacy syntax (e.g. ['x', 'y', 'z'])
+     * to the new syntax (e.g. ['x' => true, 'y' => true, 'z' => true]). While
+     * this was never documented, the legacy driver applied the same conversion.
+     *
+     * @param array $fields
+     * @return array|null
+     *
+     * @throws \MongoException
+     */
+    public static function convertProjection($fields)
+    {
+        if (! is_array($fields) || $fields === []) {
+            return null;
+        }
+
+        if (! TypeConverter::isNumericArray($fields)) {
+            $projection = TypeConverter::fromLegacy($fields);
+        } else {
+            $projection = array_fill_keys(
+                array_map(function ($field) {
+                    if (!is_string($field)) {
+                        throw new \MongoException('field names must be strings', 8);
+                    }
+
+                    return $field;
+                }, $fields),
+                true
+            );
+        }
+
+        return TypeConverter::fromLegacy($projection);
+    }
+
+    /**
      * Helper method to find out if an array has numerical indexes
      *
      * For performance reason, this method checks the first array index only.
@@ -100,7 +138,14 @@ class TypeConverter
      */
     public static function isNumericArray(array $array)
     {
-        return $array === [] || is_numeric(array_keys($array)[0]);
+        if ($array === []) {
+            return true;
+        }
+
+        $keys = array_keys($array);
+        // array_keys gives us a clean numeric array with keys, so we expect an
+        // array like [0 => 0, 1 => 1, 2 => 2, ..., n => n]
+        return array_values($keys) === array_keys($keys);
     }
 
     /**

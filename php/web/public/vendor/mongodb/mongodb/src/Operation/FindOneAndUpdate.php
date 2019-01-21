@@ -1,4 +1,19 @@
 <?php
+/*
+ * Copyright 2015-2017 MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 namespace MongoDB\Operation;
 
@@ -14,7 +29,7 @@ use MongoDB\Exception\UnsupportedException;
  * @see \MongoDB\Collection::findOneAndUpdate()
  * @see http://docs.mongodb.org/manual/reference/command/findAndModify/
  */
-class FindOneAndUpdate implements Executable
+class FindOneAndUpdate implements Executable, Explainable
 {
     const RETURN_DOCUMENT_BEFORE = 1;
     const RETURN_DOCUMENT_AFTER = 2;
@@ -26,8 +41,14 @@ class FindOneAndUpdate implements Executable
      *
      * Supported options:
      *
-     *  * bypassDocumentValidation (boolean): If true, allows the write to opt
-     *    out of document level validation.
+     *  * arrayFilters (document array): A set of filters specifying to which
+     *    array elements an update should apply.
+     *
+     *  * bypassDocumentValidation (boolean): If true, allows the write to
+     *    circumvent document level validation.
+     *
+     *    For servers < 3.2, this option is ignored as document level validation
+     *    is not available.
      *
      *  * collation (document): Collation specification.
      *
@@ -45,6 +66,10 @@ class FindOneAndUpdate implements Executable
      *    FindOneAndUpdate::RETURN_DOCUMENT_BEFORE or
      *    FindOneAndUpdate::RETURN_DOCUMENT_AFTER. The default is
      *    FindOneAndUpdate::RETURN_DOCUMENT_BEFORE.
+     *
+     *  * session (MongoDB\Driver\Session): Client session.
+     *
+     *    Sessions are not supported for server versions < 3.6.
      *
      *  * sort (document): Determines which document the operation modifies if
      *    the query selects multiple documents.
@@ -125,5 +150,10 @@ class FindOneAndUpdate implements Executable
     public function execute(Server $server)
     {
         return $this->findAndModify->execute($server);
+    }
+
+    public function getCommandDocument(Server $server)
+    {
+        return $this->findAndModify->getCommandDocument($server);
     }
 }

@@ -1,4 +1,19 @@
 <?php
+/*
+ * Copyright 2015-2017 MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 namespace MongoDB;
 
@@ -69,7 +84,7 @@ class BulkWriteResult
      * The index of each ID in the map corresponds to each document's position
      * in the bulk operation. If a document had an ID prior to inserting (i.e.
      * the driver did not generate an ID), the index will contain its "_id"
-     * field value. Any driver-generated ID will be a MongoDB\BSON\ObjectID
+     * field value. Any driver-generated ID will be a MongoDB\BSON\ObjectId
      * instance.
      *
      * @return mixed[]
@@ -142,7 +157,7 @@ class BulkWriteResult
      * The index of each ID in the map corresponds to each document's position
      * in bulk operation. If a document had an ID prior to upserting (i.e. the
      * server did not need to generate an ID), this will contain its "_id". Any
-     * server-generated ID will be a MongoDB\BSON\ObjectID instance.
+     * server-generated ID will be a MongoDB\BSON\ObjectId instance.
      *
      * This method should only be called if the write was acknowledged.
      *

@@ -17,7 +17,8 @@ class MongoDateTest extends TestCase
         ini_set("date.timezone", "UTC");
 
         // Today at 8h 8m 8s
-        $timestamp = mktime (8, 8, 8); $date = new \MongoDate($timestamp);
+        $timestamp = mktime(8, 8, 8);
+        $date = new \MongoDate($timestamp);
 
         $this->assertSame('08:08:08', $date->toDateTime()->format("H:i:s"));
 
@@ -80,5 +81,18 @@ class MongoDateTest extends TestCase
 
         $this->assertAttributeSame(1234567890, 'sec', $date);
         $this->assertAttributeSame(123000, 'usec', $date);
+    }
+
+    public function testSupportMillisecondsWithLeadingZeroes()
+    {
+        $date = new \MongoDate('1234567890', '012345');
+        $this->assertAttributeSame(1234567890, 'sec', $date);
+        $this->assertAttributeSame(12000, 'usec', $date);
+
+        $this->assertSame('0.01200000 1234567890', (string) $date);
+        $dateTime = $date->toDateTime();
+
+        $this->assertSame(1234567890, $dateTime->getTimestamp());
+        $this->assertSame('012000', $dateTime->format('u'));
     }
 }

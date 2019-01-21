@@ -1,7 +1,23 @@
 <?php
+/*
+ * Copyright 2016-2017 MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 namespace MongoDB\GridFS;
 
+use MongoDB\Collection;
 use MongoDB\Driver\Cursor;
 use MongoDB\Driver\Manager;
 use MongoDB\Driver\ReadConcern;
@@ -35,6 +51,7 @@ class Bucket
     private $databaseName;
     private $manager;
     private $bucketName;
+    private $disableMD5;
     private $chunkSizeBytes;
     private $readConcern;
     private $readPreference;
@@ -51,6 +68,9 @@ class Bucket
      *
      *  * chunkSizeBytes (integer): The chunk size in bytes. Defaults to
      *    261120 (i.e. 255 KiB).
+     *
+     *  * disableMD5 (boolean): When true, no MD5 sum will be generated for
+     *    each stored file. Defaults to "false".
      *
      *  * readConcern (MongoDB\Driver\ReadConcern): Read concern.
      *
@@ -70,6 +90,7 @@ class Bucket
         $options += [
             'bucketName' => self::$defaultBucketName,
             'chunkSizeBytes' => self::$defaultChunkSizeBytes,
+            'disableMD5' => false,
         ];
 
         if (isset($options['bucketName']) && ! is_string($options['bucketName'])) {
@@ -78,6 +99,14 @@ class Bucket
 
         if (isset($options['chunkSizeBytes']) && ! is_integer($options['chunkSizeBytes'])) {
             throw InvalidArgumentException::invalidType('"chunkSizeBytes" option', $options['chunkSizeBytes'], 'integer');
+        }
+
+        if (isset($options['chunkSizeBytes']) && $options['chunkSizeBytes'] < 1) {
+            throw new InvalidArgumentException(sprintf('Expected "chunkSizeBytes" option to be >= 1, %d given', $options['chunkSizeBytes']));
+        }
+
+        if (isset($options['disableMD5']) && ! is_bool($options['disableMD5'])) {
+            throw InvalidArgumentException::invalidType('"disableMD5" option', $options['disableMD5'], 'boolean');
         }
 
         if (isset($options['readConcern']) && ! $options['readConcern'] instanceof ReadConcern) {
@@ -100,6 +129,7 @@ class Bucket
         $this->databaseName = (string) $databaseName;
         $this->bucketName = $options['bucketName'];
         $this->chunkSizeBytes = $options['chunkSizeBytes'];
+        $this->disableMD5 = $options['disableMD5'];
         $this->readConcern = isset($options['readConcern']) ? $options['readConcern'] : $this->manager->getReadConcern();
         $this->readPreference = isset($options['readPreference']) ? $options['readPreference'] : $this->manager->getReadPreference();
         $this->typeMap = isset($options['typeMap']) ? $options['typeMap'] : self::$defaultTypeMap;
@@ -260,6 +290,26 @@ class Bucket
     }
 
     /**
+     * Return the chunks collection.
+     *
+     * @return Collection
+     */
+    public function getChunksCollection()
+    {
+        return $this->collectionWrapper->getChunksCollection();
+    }
+
+    /**
+     * Return the chunk size in bytes.
+     *
+     * @return integer
+     */
+    public function getChunkSizeBytes()
+    {
+        return $this->chunkSizeBytes;
+    }
+
+    /**
      * Return the database name.
      *
      * @return string
@@ -309,6 +359,58 @@ class Bucket
         }
 
         return $file->_id;
+    }
+
+    /**
+     * Return the files collection.
+     *
+     * @return Collection
+     */
+    public function getFilesCollection()
+    {
+        return $this->collectionWrapper->getFilesCollection();
+    }
+
+    /**
+     * Return the read concern for this GridFS bucket.
+     *
+     * @see http://php.net/manual/en/mongodb-driver-readconcern.isdefault.php
+     * @return ReadConcern
+     */
+    public function getReadConcern()
+    {
+        return $this->readConcern;
+    }
+
+    /**
+     * Return the read preference for this GridFS bucket.
+     *
+     * @return ReadPreference
+     */
+    public function getReadPreference()
+    {
+        return $this->readPreference;
+    }
+
+    /**
+     * Return the type map for this GridFS bucket.
+     *
+     * @return array
+     */
+    public function getTypeMap()
+    {
+        return $this->typeMap;
+    }
+
+    /**
+     * Return the write concern for this GridFS bucket.
+     *
+     * @see http://php.net/manual/en/mongodb-driver-writeconcern.isdefault.php
+     * @return WriteConcern
+     */
+    public function getWriteConcern()
+    {
+        return $this->writeConcern;
     }
 
     /**
@@ -378,6 +480,9 @@ class Bucket
      *  * chunkSizeBytes (integer): The chunk size in bytes. Defaults to the
      *    bucket's chunk size.
      *
+     *  * disableMD5 (boolean): When true, no MD5 sum will be generated for
+     *    the stored file. Defaults to "false".
+     *
      *  * metadata (document): User data for the "metadata" field of the files
      *    collection document.
      *
@@ -440,6 +545,9 @@ class Bucket
      *
      *  * chunkSizeBytes (integer): The chunk size in bytes. Defaults to the
      *    bucket's chunk size.
+     *
+     *  * disableMD5 (boolean): When true, no MD5 sum will be generated for
+     *    the stored file. Defaults to "false".
      *
      *  * metadata (document): User data for the "metadata" field of the files
      *    collection document.

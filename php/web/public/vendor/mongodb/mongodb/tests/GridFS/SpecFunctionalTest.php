@@ -118,7 +118,7 @@ class SpecFunctionalTest extends FunctionalTestCase
     /**
      * Convert encoded types in the array and return the modified array.
      *
-     * Nested arrays with "$oid" and "$date" keys will be converted to ObjectID
+     * Nested arrays with "$oid" and "$date" keys will be converted to ObjectId
      * and UTCDateTime instances, respectively. Nested arrays with "$hex" keys
      * will be converted to a string or Binary object.
      *
@@ -150,9 +150,7 @@ class SpecFunctionalTest extends FunctionalTestCase
             }
 
             if (isset($value['$date'])) {
-                // TODO: This is necessary until PHPC-536 is implemented
-                $milliseconds = floor((new DateTime($value['$date']))->format('U.u') * 1000);
-                $value = new UTCDateTime((int) $milliseconds);
+                $value = new UTCDateTime(new DateTime($value['$date']));
                 return;
             }
 
@@ -204,7 +202,6 @@ class SpecFunctionalTest extends FunctionalTestCase
      * @param array $assert
      * @param mixed $actualResult
      * @return mixed
-     * @throws FileNotFoundException
      * @throws LogicException if the operation is unsupported
      */
     private function executeAssert(array $assert, $actualResult)
@@ -243,7 +240,6 @@ class SpecFunctionalTest extends FunctionalTestCase
      *
      * @param mixed $expectedResult
      * @param mixed $actualResult
-     * @param array $data
      * @throws LogicException if the result assertion is unsupported
      */
     private function executeAssertResult($expectedResult, $actualResult)
@@ -334,7 +330,7 @@ class SpecFunctionalTest extends FunctionalTestCase
                 /* Although ReadableStream throws a CorruptFileException, the
                  * stream wrapper will convert it to a PHP error of type
                  * E_USER_WARNING. */
-                return 'PHPUnit_Framework_Error_Warning';
+                return 'PHPUnit\Framework\Error\Warning';
 
             default:
                 throw new LogicException('Unsupported error: ' . $error);

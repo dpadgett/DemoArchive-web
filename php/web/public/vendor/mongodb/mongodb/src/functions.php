@@ -1,4 +1,19 @@
 <?php
+/*
+ * Copyright 2015-2017 MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 namespace MongoDB;
 
@@ -8,6 +23,7 @@ use MongoDB\Driver\Server;
 use MongoDB\Driver\WriteConcern;
 use MongoDB\Exception\InvalidArgumentException;
 use stdClass;
+use ReflectionClass;
 
 /**
  * Applies a type map to a document.
@@ -29,27 +45,6 @@ function apply_type_map_to_document($document, array $typeMap)
     }
 
     return \MongoDB\BSON\toPHP(\MongoDB\BSON\fromPHP($document), $typeMap);
-}
-
-/**
- * Extracts an ID from an inserted document.
- *
- * This function is used when BulkWrite::insert() does not return a generated
- * ID, which means that the ID should be fetched from an array offset, public
- * property, or in the data returned by bsonSerialize().
- *
- * @internal
- * @see https://jira.mongodb.org/browse/PHPC-382
- * @param array|object $document Inserted document
- * @return mixed
- */
-function extract_id_from_inserted_document($document)
-{
-    if ($document instanceof Serializable) {
-        return extract_id_from_inserted_document($document->bsonSerialize());
-    }
-
-    return is_array($document) ? $document['_id'] : $document->_id;
 }
 
 /**
@@ -117,7 +112,7 @@ function is_first_key_operator($document)
 /**
  * Return whether the aggregation pipeline ends with an $out operator.
  *
- * This is used for determining whether the aggregation pipeline msut be
+ * This is used for determining whether the aggregation pipeline must be
  * executed against a primary server.
  *
  * @internal
@@ -138,22 +133,37 @@ function is_last_pipeline_operator_out(array $pipeline)
 }
 
 /**
- * Converts a ReadConcern instance to a stdClass for use in a BSON document.
+ * Return whether the "out" option for a mapReduce operation is "inline".
+ *
+ * This is used to determine if a mapReduce command requires a primary.
  *
  * @internal
- * @see https://jira.mongodb.org/browse/PHPC-498
- * @param ReadConcern $readConcern Read concern
- * @return stdClass
+ * @see https://docs.mongodb.com/manual/reference/command/mapReduce/#output-inline
+ * @param string|array|object $out Output specification
+ * @return boolean
+ * @throws InvalidArgumentException
  */
-function read_concern_as_document(ReadConcern $readConcern)
+function is_mapreduce_output_inline($out)
 {
-    $document = [];
-
-    if ($readConcern->getLevel() !== null) {
-        $document['level'] = $readConcern->getLevel();
+    if ( ! is_array($out) && ! is_object($out)) {
+        return false;
     }
 
-    return (object) $document;
+    if ($out instanceof Serializable) {
+        $out = $out->bsonSerialize();
+    }
+
+    if (is_object($out)) {
+        $out = get_object_vars($out);
+    }
+
+    if ( ! is_array($out)) {
+        throw InvalidArgumentException::invalidType('$out', $out, 'array or object');
+    }
+
+    reset($out);
+
+    return key($out) === 'inline';
 }
 
 /**
@@ -186,28 +196,30 @@ function is_string_array($input) {
 }
 
 /**
- * Converts a WriteConcern instance to a stdClass for use in a BSON document.
+ * Performs a deep copy of a value.
+ *
+ * This function will clone objects and recursively copy values within arrays.
  *
  * @internal
- * @see https://jira.mongodb.org/browse/PHPC-498
- * @param WriteConcern $writeConcern Write concern
- * @return stdClass
+ * @see https://bugs.php.net/bug.php?id=49664
+ * @param mixed $element Value to be copied
+ * @return mixed
  */
-function write_concern_as_document(WriteConcern $writeConcern)
-{
-    $document = [];
-
-    if ($writeConcern->getW() !== null) {
-        $document['w'] = $writeConcern->getW();
+function recursive_copy($element) {
+    if (is_array($element)) {
+        foreach ($element as $key => $value) {
+            $element[$key] = recursive_copy($value);
+        }
+        return $element;
     }
 
-    if ($writeConcern->getJournal() !== null) {
-        $document['j'] = $writeConcern->getJournal();
+    if ( ! is_object($element)) {
+        return $element;
     }
 
-    if ($writeConcern->getWtimeout() !== 0) {
-        $document['wtimeout'] = $writeConcern->getWtimeout();
+    if ( ! (new ReflectionClass($element))->isCloneable()) {
+        return $element;
     }
 
-    return (object) $document;
+    return clone $element;
 }

@@ -1,9 +1,26 @@
 <?php
+/*
+ * Copyright 2015-2017 MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 namespace MongoDB;
 
 use MongoDB\Driver\Manager;
+use MongoDB\Driver\ReadConcern;
 use MongoDB\Driver\ReadPreference;
+use MongoDB\Driver\WriteConcern;
 use MongoDB\Driver\Exception\RuntimeException as DriverRuntimeException;
 use MongoDB\Driver\Exception\InvalidArgumentException as DriverInvalidArgumentException;
 use MongoDB\Exception\InvalidArgumentException;
@@ -12,6 +29,7 @@ use MongoDB\Exception\UnsupportedException;
 use MongoDB\Model\DatabaseInfoIterator;
 use MongoDB\Operation\DropDatabase;
 use MongoDB\Operation\ListDatabases;
+use MongoDB\Operation\Watch;
 
 class Client
 {
@@ -20,9 +38,12 @@ class Client
         'document' => 'MongoDB\Model\BSONDocument',
         'root' => 'MongoDB\Model\BSONDocument',
     ];
+    private static $wireVersionForReadConcern = 4;
     private static $wireVersionForWritableCommandWriteConcern = 5;
 
     private $manager;
+    private $readConcern;
+    private $readPreference;
     private $uri;
     private $typeMap;
     private $writeConcern;
@@ -64,6 +85,8 @@ class Client
         unset($driverOptions['typeMap']);
 
         $this->manager = new Manager($uri, $uriOptions, $driverOptions);
+        $this->readConcern = $this->manager->getReadConcern();
+        $this->readPreference = $this->manager->getReadPreference();
         $this->writeConcern = $this->manager->getWriteConcern();
     }
 
@@ -149,6 +172,48 @@ class Client
     }
 
     /**
+     * Return the read concern for this client.
+     *
+     * @see http://php.net/manual/en/mongodb-driver-readconcern.isdefault.php
+     * @return ReadConcern
+     */
+    public function getReadConcern()
+    {
+        return $this->readConcern;
+    }
+
+    /**
+     * Return the read preference for this client.
+     *
+     * @return ReadPreference
+     */
+    public function getReadPreference()
+    {
+        return $this->readPreference;
+    }
+
+    /**
+     * Return the type map for this client.
+     *
+     * @return array
+     */
+    public function getTypeMap()
+    {
+        return $this->typeMap;
+    }
+
+    /**
+     * Return the write concern for this client.
+     *
+     * @see http://php.net/manual/en/mongodb-driver-writeconcern.isdefault.php
+     * @return WriteConcern
+     */
+    public function getWriteConcern()
+    {
+        return $this->writeConcern;
+    }
+
+    /**
      * List databases.
      *
      * @see ListDatabases::__construct() for supported options
@@ -196,5 +261,47 @@ class Client
         $options += ['typeMap' => $this->typeMap];
 
         return new Database($this->manager, $databaseName, $options);
+    }
+
+    /**
+     * Start a new client session.
+     *
+     * @see http://php.net/manual/en/mongodb-driver-manager.startsession.php
+     * @param array  $options      Session options
+     * @return MongoDB\Driver\Session
+     */
+    public function startSession(array $options = [])
+    {
+        return $this->manager->startSession($options);
+    }
+
+    /**
+     * Create a change stream for watching changes to the cluster.
+     *
+     * @see Watch::__construct() for supported options
+     * @param array $pipeline List of pipeline operations
+     * @param array $options  Command options
+     * @return ChangeStream
+     * @throws InvalidArgumentException for parameter/option parsing errors
+     */
+    public function watch(array $pipeline = [], array $options = [])
+    {
+        if ( ! isset($options['readPreference'])) {
+            $options['readPreference'] = $this->readPreference;
+        }
+
+        $server = $this->manager->selectServer($options['readPreference']);
+
+        if ( ! isset($options['readConcern']) && \MongoDB\server_supports_feature($server, self::$wireVersionForReadConcern)) {
+            $options['readConcern'] = $this->readConcern;
+        }
+
+        if ( ! isset($options['typeMap'])) {
+            $options['typeMap'] = $this->typeMap;
+        }
+
+        $operation = new Watch($this->manager, null, null, $pipeline, $options);
+
+        return $operation->execute($server);
     }
 }

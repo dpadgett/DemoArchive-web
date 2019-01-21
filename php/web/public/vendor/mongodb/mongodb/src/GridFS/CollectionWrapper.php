@@ -1,4 +1,19 @@
 <?php
+/*
+ * Copyright 2016-2017 MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 namespace MongoDB\GridFS;
 
@@ -7,7 +22,6 @@ use MongoDB\UpdateResult;
 use MongoDB\Driver\Cursor;
 use MongoDB\Driver\Manager;
 use MongoDB\Driver\ReadPreference;
-use IteratorIterator;
 use stdClass;
 
 /**
@@ -70,6 +84,27 @@ class CollectionWrapper
     {
         $this->filesCollection->drop(['typeMap' => []]);
         $this->chunksCollection->drop(['typeMap' => []]);
+    }
+
+    /**
+     * Finds GridFS chunk documents for a given file ID and optional offset.
+     *
+     * @param mixed   $id        File ID
+     * @param integer $fromChunk Starting chunk (inclusive)
+     * @return Cursor
+     */
+    public function findChunksByFileId($id, $fromChunk = 0)
+    {
+        return $this->chunksCollection->find(
+            [
+                'files_id' => $id,
+                'n' => ['$gte' => $fromChunk],
+            ],
+            [
+                'sort' => ['n' => 1],
+                'typeMap' => ['root' => 'stdClass'],
+            ]
+        );
     }
 
     /**
@@ -163,22 +198,13 @@ class CollectionWrapper
     }
 
     /**
-     * Returns a chunks iterator for a given file ID.
+     * Return the chunks collection.
      *
-     * @param mixed $id
-     * @return IteratorIterator
+     * @return Collection
      */
-    public function getChunksIteratorByFilesId($id)
+    public function getChunksCollection()
     {
-        $cursor = $this->chunksCollection->find(
-            ['files_id' => $id],
-            [
-                'sort' => ['n' => 1],
-                'typeMap' => ['root' => 'stdClass'],
-            ]
-        );
-
-        return new IteratorIterator($cursor);
+        return $this->chunksCollection;
     }
 
     /**
@@ -189,6 +215,16 @@ class CollectionWrapper
     public function getDatabaseName()
     {
         return $this->databaseName;
+    }
+
+    /**
+     * Return the files collection.
+     *
+     * @return Collection
+     */
+    public function getFilesCollection()
+    {
+        return $this->filesCollection;
     }
 
     /**

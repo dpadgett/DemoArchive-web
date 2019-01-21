@@ -1,7 +1,61 @@
-CHANGELOG
-=========
+CHANGELOG for 1.0.x
+===================
 
 This changelog references the relevant changes done in minor version updates.
+
+1.0.11 (2017-04-27)
+-------------------
+
+All issues and pull requests under this release may be found under the
+[1.0.11](https://github.com/alcaeus/mongo-php-adapter/issues?q=milestone%3A1.0.11)
+milestone.
+
+ * [#170](https://github.com/alcaeus/mongo-php-adapter/pull/170) fixes a 
+ `MongoCursor` object passing a `batchSize` of 0 by default, causing errors in
+ sharded setups.
+
+1.0.10 (2017-03-29)
+-------------------
+
+All issues and pull requests under this release may be found under the
+[1.0.10](https://github.com/alcaeus/mongo-php-adapter/issues?q=milestone%3A1.0.10)
+milestone.
+
+ * [#163](https://github.com/alcaeus/mongo-php-adapter/pull/163) fixes an error
+ when dealing with milliseconds with leading zeroes in `MongoDate` objects.
+
+1.0.9 (2017-01-29)
+------------------
+
+All issues and pull requests under this release may be found under the
+[1.0.9](https://github.com/alcaeus/mongo-php-adapter/issues?q=milestone%3A1.0.9)
+milestone.
+
+ * [#157](https://github.com/alcaeus/mongo-php-adapter/pull/157) fixes a regression
+ introduced in 1.0.8 when using query projection with numeric field names.
+ * [#155](https://github.com/alcaeus/mongo-php-adapter/pull/155) fixes the handling
+ of BSON types when converting legacy types to BSON types.
+ * [#154](https://github.com/alcaeus/mongo-php-adapter/pull/154) makes the `options`
+ parameter in `MongoDB::createCollection` optional.
+
+1.0.8 (2017-01-11)
+------------------
+
+All issues and pull requests under this release may be found under the
+[1.0.8](https://github.com/alcaeus/mongo-php-adapter/issues?q=milestone%3A1.0.8)
+milestone.
+
+ * [#151](https://github.com/alcaeus/mongo-php-adapter/pull/151) allows using
+ boolean values when passing a write concern option to an insert or update. While
+ never documented, this was happily accepted by the legacy driver.
+ * [#150](https://github.com/alcaeus/mongo-php-adapter/pull/150) adds missing
+ options to `MongoCollection::indexInfo`.
+ * [#149](https://github.com/alcaeus/mongo-php-adapter/pull/149) fixes calls to
+ `MongoDB::getDBRef` with references containing a `$db` field with a different
+ value than the current database.
+ * [#145](https://github.com/alcaeus/mongo-php-adapter/pull/145) fixes query
+ projections in the legacy syntax. While never documented, this was happily
+ accepted by the legacy driver.
 
 1.0.7 (2016-12-18)
 ------------------

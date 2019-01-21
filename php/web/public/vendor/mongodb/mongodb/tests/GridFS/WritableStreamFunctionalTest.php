@@ -2,6 +2,7 @@
 
 namespace MongoDB\Tests\GridFS;
 
+use MongoDB\Exception\InvalidArgumentException;
 use MongoDB\GridFS\CollectionWrapper;
 use MongoDB\GridFS\WritableStream;
 
@@ -19,6 +20,9 @@ class WritableStreamFunctionalTest extends FunctionalTestCase
         $this->collectionWrapper = new CollectionWrapper($this->manager, $this->getDatabaseName(), 'fs');
     }
 
+    /**
+     * @doesNotPerformAssertions
+     */
     public function testValidConstructorOptions()
     {
         new WritableStream($this->collectionWrapper, 'filename', [
@@ -29,11 +33,11 @@ class WritableStreamFunctionalTest extends FunctionalTestCase
     }
 
     /**
-     * @expectedException MongoDB\Exception\InvalidArgumentException
      * @dataProvider provideInvalidConstructorOptions
      */
     public function testConstructorOptionTypeChecks(array $options)
     {
+        $this->expectException(InvalidArgumentException::class);
         new WritableStream($this->collectionWrapper, 'filename', $options);
     }
 
@@ -45,6 +49,10 @@ class WritableStreamFunctionalTest extends FunctionalTestCase
             $options[][] = ['chunkSizeBytes' => $value];
         }
 
+        foreach ($this->getInvalidBooleanValues() as $value) {
+            $options[][] = ['disableMD5' => $value];
+        }
+
         foreach ($this->getInvalidDocumentValues() as $value) {
             $options[][] = ['metadata' => $value];
         }
@@ -52,13 +60,36 @@ class WritableStreamFunctionalTest extends FunctionalTestCase
         return $options;
     }
 
+    public function testConstructorShouldRequireChunkSizeBytesOptionToBePositive()
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Expected "chunkSizeBytes" option to be >= 1, 0 given');
+        new WritableStream($this->collectionWrapper, 'filename', ['chunkSizeBytes' => 0]);
+    }
+
+    public function testWriteBytesAlwaysUpdatesFileSize()
+    {
+        $stream = new WritableStream($this->collectionWrapper, 'filename', ['chunkSizeBytes' => 1024]);
+
+        $this->assertSame(0, $stream->getSize());
+        $this->assertSame(512, $stream->writeBytes(str_repeat('a', 512)));
+        $this->assertSame(512, $stream->getSize());
+        $this->assertSame(512, $stream->writeBytes(str_repeat('a', 512)));
+        $this->assertSame(1024, $stream->getSize());
+        $this->assertSame(512, $stream->writeBytes(str_repeat('a', 512)));
+        $this->assertSame(1536, $stream->getSize());
+
+        $stream->close();
+        $this->assertSame(1536, $stream->getSize());
+    }
+
     /**
      * @dataProvider provideInputDataAndExpectedMD5
      */
-    public function testInsertChunksCalculatesMD5($input, $expectedMD5)
+    public function testWriteBytesCalculatesMD5($input, $expectedMD5)
     {
         $stream = new WritableStream($this->collectionWrapper, 'filename');
-        $stream->insertChunks($input);
+        $stream->writeBytes($input);
         $stream->close();
 
         $fileDocument = $this->filesCollection->findOne(

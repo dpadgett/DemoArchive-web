@@ -1,11 +1,28 @@
 <?php
+/*
+ * Copyright 2016-2017 MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 namespace MongoDB\GridFS;
 
 use MongoDB\BSON\Binary;
 use MongoDB\BSON\ObjectId;
 use MongoDB\BSON\UTCDateTime;
+use MongoDB\Driver\Exception\RuntimeException as DriverRuntimeException;
 use MongoDB\Exception\InvalidArgumentException;
+use stdClass;
 
 /**
  * WritableStream abstracts the process of writing a GridFS file.
@@ -16,13 +33,13 @@ class WritableStream
 {
     private static $defaultChunkSizeBytes = 261120;
 
-    private $buffer;
-    private $bufferLength = 0;
+    private $buffer = '';
     private $chunkOffset = 0;
     private $chunkSize;
+    private $disableMD5;
     private $collectionWrapper;
-    private $ctx;
     private $file;
+    private $hashCtx;
     private $isClosed = false;
     private $length = 0;
 
@@ -33,12 +50,15 @@ class WritableStream
      *
      *  * _id (mixed): File document identifier. Defaults to a new ObjectId.
      *
-     *  * aliases (array of strings): DEPRECATED An array of aliases. 
+     *  * aliases (array of strings): DEPRECATED An array of aliases.
      *    Applications wishing to store aliases should add an aliases field to
      *    the metadata document instead.
      *
      *  * chunkSizeBytes (integer): The chunk size in bytes. Defaults to
      *    261120 (i.e. 255 KiB).
+     *
+     *  * disableMD5 (boolean): When true, no MD5 sum will be generated.
+     *    Defaults to "false".
      *
      *  * contentType (string): DEPRECATED content type to be stored with the
      *    file. This information should now be added to the metadata.
@@ -56,6 +76,7 @@ class WritableStream
         $options += [
             '_id' => new ObjectId,
             'chunkSizeBytes' => self::$defaultChunkSizeBytes,
+            'disableMD5' => false,
         ];
 
         if (isset($options['aliases']) && ! \MongoDB\is_string_array($options['aliases'])) {
@@ -64,6 +85,14 @@ class WritableStream
 
         if (isset($options['chunkSizeBytes']) && ! is_integer($options['chunkSizeBytes'])) {
             throw InvalidArgumentException::invalidType('"chunkSizeBytes" option', $options['chunkSizeBytes'], 'integer');
+        }
+
+        if (isset($options['chunkSizeBytes']) && $options['chunkSizeBytes'] < 1) {
+            throw new InvalidArgumentException(sprintf('Expected "chunkSizeBytes" option to be >= 1, %d given', $options['chunkSizeBytes']));
+        }
+
+        if (isset($options['disableMD5']) && ! is_bool($options['disableMD5'])) {
+            throw InvalidArgumentException::invalidType('"disableMD5" option', $options['disableMD5'], 'boolean');
         }
 
         if (isset($options['contentType']) && ! is_string($options['contentType'])) {
@@ -76,15 +105,16 @@ class WritableStream
 
         $this->chunkSize = $options['chunkSizeBytes'];
         $this->collectionWrapper = $collectionWrapper;
-        $this->buffer = fopen('php://memory', 'w+b');
-        $this->ctx = hash_init('md5');
+        $this->disableMD5 = $options['disableMD5'];
+
+        if ( ! $this->disableMD5) {
+            $this->hashCtx = hash_init('md5');
+        }
 
         $this->file = [
             '_id' => $options['_id'],
             'chunkSize' => $this->chunkSize,
             'filename' => (string) $filename,
-            // TODO: This is necessary until PHPC-536 is implemented
-            'uploadDate' => new UTCDateTime((int) floor(microtime(true) * 1000)),
         ] + array_intersect_key($options, ['aliases' => 1, 'contentType' => 1, 'metadata' => 1]);
     }
 
@@ -113,14 +143,10 @@ class WritableStream
             return;
         }
 
-        rewind($this->buffer);
-        $cached = stream_get_contents($this->buffer);
-
-        if (strlen($cached) > 0) {
-            $this->insertChunk($cached);
+        if (strlen($this->buffer) > 0) {
+            $this->insertChunkFromBuffer();
         }
 
-        fclose($this->buffer);
         $this->fileCollectionInsert();
         $this->isClosed = true;
     }
@@ -144,84 +170,113 @@ class WritableStream
      */
     public function getSize()
     {
-        return $this->length;
+        return $this->length + strlen($this->buffer);
+    }
+
+    /**
+     * Return the current position of the stream.
+     *
+     * This is the offset within the stream where the next byte would be
+     * written. Since seeking is not supported and writes are appended, this is
+     * always the end of the stream.
+     *
+     * @see WritableStream::getSize()
+     * @return integer
+     */
+    public function tell()
+    {
+        return $this->getSize();
     }
 
     /**
      * Inserts binary data into GridFS via chunks.
      *
      * Data will be buffered internally until chunkSizeBytes are accumulated, at
-     * which point a chunk's worth of data will be inserted and the buffer
-     * reset.
+     * which point a chunk document will be inserted and the buffer reset.
      *
-     * @param string $toWrite Binary data to write
+     * @param string $data Binary data to write
      * @return integer
      */
-    public function insertChunks($toWrite)
+    public function writeBytes($data)
     {
         if ($this->isClosed) {
             // TODO: Should this be an error condition? e.g. BadMethodCallException
             return;
         }
 
-        $readBytes = 0;
+        $bytesRead = 0;
 
-        while ($readBytes != strlen($toWrite)) {
-            $addToBuffer = substr($toWrite, $readBytes, $this->chunkSize - $this->bufferLength);
-            fwrite($this->buffer, $addToBuffer);
-            $readBytes += strlen($addToBuffer);
-            $this->bufferLength += strlen($addToBuffer);
+        while ($bytesRead != strlen($data)) {
+            $initialBufferLength = strlen($this->buffer);
+            $this->buffer .= substr($data, $bytesRead, $this->chunkSize - $initialBufferLength);
+            $bytesRead += strlen($this->buffer) - $initialBufferLength;
 
-            if ($this->bufferLength == $this->chunkSize) {
-                rewind($this->buffer);
-                $this->insertChunk(stream_get_contents($this->buffer));
-                ftruncate($this->buffer, 0);
-                $this->bufferLength = 0;
+            if (strlen($this->buffer) == $this->chunkSize) {
+                $this->insertChunkFromBuffer();
             }
         }
 
-        return $readBytes;
+        return $bytesRead;
     }
 
     private function abort()
     {
-        $this->collectionWrapper->deleteChunksByFilesId($this->file['_id']);
+        try {
+            $this->collectionWrapper->deleteChunksByFilesId($this->file['_id']);
+        } catch (DriverRuntimeException $e) {
+            // We are already handling an error if abort() is called, so suppress this
+        }
+
         $this->isClosed = true;
     }
 
     private function fileCollectionInsert()
     {
-        if ($this->isClosed) {
-            // TODO: Should this be an error condition? e.g. BadMethodCallException
-            return;
+        $this->file['length'] = $this->length;
+        $this->file['uploadDate'] = new UTCDateTime;
+
+        if ( ! $this->disableMD5) {
+            $this->file['md5'] = hash_final($this->hashCtx);
         }
 
-        $md5 = hash_final($this->ctx);
+        try {
+            $this->collectionWrapper->insertFile($this->file);
+        } catch (DriverRuntimeException $e) {
+            $this->abort();
 
-        $this->file['length'] = $this->length;
-        $this->file['md5'] = $md5;
-
-        $this->collectionWrapper->insertFile($this->file);
+            throw $e;
+        }
 
         return $this->file['_id'];
     }
 
-    private function insertChunk($data)
+    private function insertChunkFromBuffer()
     {
-        if ($this->isClosed) {
-            // TODO: Should this be an error condition? e.g. BadMethodCallException
+        if (strlen($this->buffer) == 0) {
             return;
         }
 
-        $toUpload = [
+        $data = $this->buffer;
+        $this->buffer = '';
+
+        $chunk = [
             'files_id' => $this->file['_id'],
             'n' => $this->chunkOffset,
             'data' => new Binary($data, Binary::TYPE_GENERIC),
         ];
 
-        hash_update($this->ctx, $data);
+        if ( ! $this->disableMD5) {
+            hash_update($this->hashCtx, $data);
+        }
 
-        $this->collectionWrapper->insertChunk($toUpload);
+        try {
+            $this->collectionWrapper->insertChunk($chunk);
+        } catch (DriverRuntimeException $e) {
+            $this->abort();
+
+            throw $e;
+        }
+
         $this->length += strlen($data);
         $this->chunkOffset++;
     }

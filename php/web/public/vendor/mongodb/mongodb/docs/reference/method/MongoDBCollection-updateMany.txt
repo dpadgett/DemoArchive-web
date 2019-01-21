@@ -40,7 +40,14 @@ Errors/Exceptions
 
 .. include:: /includes/extracts/error-unsupportedexception.rst
 .. include:: /includes/extracts/error-invalidargumentexception.rst
+.. include:: /includes/extracts/error-driver-bulkwriteexception.rst
 .. include:: /includes/extracts/error-driver-runtimeexception.rst
+
+Behavior
+--------
+
+.. include:: /includes/extracts/note-bson-comparison.rst
+.. include:: /includes/extracts/bulkwriteexception-result.rst
 
 Examples
 --------
@@ -50,7 +57,7 @@ The following example updates all of the documents with the ``borough`` of
 
 .. code-block:: php
 
-   $collection = (new MongoDB\Client)->example->restaurants;
+   $collection = (new MongoDB\Client)->test->restaurants;
 
    $updateResult = $collection->updateMany(
        [ 'borough' => 'Queens' ],

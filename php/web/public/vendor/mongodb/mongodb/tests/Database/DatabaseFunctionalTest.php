@@ -7,6 +7,8 @@ use MongoDB\Driver\BulkWrite;
 use MongoDB\Driver\ReadConcern;
 use MongoDB\Driver\ReadPreference;
 use MongoDB\Driver\WriteConcern;
+use MongoDB\Exception\InvalidArgumentException;
+use MongoDB\Operation\CreateIndexes;
 
 /**
  * Functional tests for the Database class.
@@ -14,11 +16,11 @@ use MongoDB\Driver\WriteConcern;
 class DatabaseFunctionalTest extends FunctionalTestCase
 {
     /**
-     * @expectedException MongoDB\Exception\InvalidArgumentException
      * @dataProvider provideInvalidDatabaseNames
      */
     public function testConstructorDatabaseNameArgument($databaseName)
     {
+        $this->expectException(InvalidArgumentException::class);
         // TODO: Move to unit test once ManagerInterface can be mocked (PHPC-378)
         new Database($this->manager, $databaseName);
     }
@@ -32,11 +34,11 @@ class DatabaseFunctionalTest extends FunctionalTestCase
     }
 
     /**
-     * @expectedException MongoDB\Exception\InvalidArgumentException
      * @dataProvider provideInvalidConstructorOptions
      */
     public function testConstructorOptionTypeChecks(array $options)
     {
+        $this->expectException(InvalidArgumentException::class);
         new Database($this->manager, $this->getDatabaseName(), $options);
     }
 
@@ -91,7 +93,7 @@ class DatabaseFunctionalTest extends FunctionalTestCase
         $commandResult = current($cursor->toArray());
 
         $this->assertCommandSucceeded($commandResult);
-        $this->assertTrue(isset($commandResult->ismaster));
+        $this->assertObjectHasAttribute('ismaster', $commandResult);
         $this->assertTrue($commandResult->ismaster);
     }
 
@@ -110,16 +112,16 @@ class DatabaseFunctionalTest extends FunctionalTestCase
 
         $this->assertCommandSucceeded($commandResult);
         $this->assertInternalType('array', $commandResult);
-        $this->assertTrue(isset($commandResult['ismaster']));
+        $this->assertArrayHasKey('ismaster', $commandResult);
         $this->assertTrue($commandResult['ismaster']);
     }
 
     /**
-     * @expectedException MongoDB\Exception\InvalidArgumentException
      * @dataProvider provideInvalidDocumentValues
      */
     public function testCommandCommandArgumentTypeCheck($command)
     {
+        $this->expectException(InvalidArgumentException::class);
         $this->database->command($command);
     }
 
@@ -150,6 +152,22 @@ class DatabaseFunctionalTest extends FunctionalTestCase
         $this->assertInstanceOf('MongoDB\Driver\WriteConcern', $debug['writeConcern']);
         $this->assertSame(WriteConcern::MAJORITY, $debug['writeConcern']->getW());
     }
+
+    public function testModifyCollection()
+    {
+        $this->database->createCollection($this->getCollectionName());
+
+        $indexes = [['key' => ['lastAccess' => 1], 'expireAfterSeconds' => 3]];
+        $createIndexes = new CreateIndexes($this->getDatabaseName(), $this->getCollectionName(), $indexes);
+        $createIndexes->execute($this->getPrimaryServer());
+
+        $commandResult = $this->database->modifyCollection($this->getCollectionName(), ['index' => ['keyPattern' => ['lastAccess' => 1], 'expireAfterSeconds' => 1000]]);
+
+        $this->assertCommandSucceeded($commandResult);
+        $this->assertSame(3, $commandResult['expireAfterSeconds_old']);
+        $this->assertSame(1000, $commandResult['expireAfterSeconds_new']);
+    }
+
 
     public function testSelectCollectionInheritsOptions()
     {

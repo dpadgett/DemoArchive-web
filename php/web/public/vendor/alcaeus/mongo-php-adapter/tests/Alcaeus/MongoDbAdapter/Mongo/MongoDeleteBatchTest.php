@@ -58,12 +58,36 @@ class MongoDeleteBatchTest extends TestCase
         $this->assertSame(0, $newCollection->count());
     }
 
+    public function testDeleteManyWithoutAck()
+    {
+        $collection = $this->getCollection();
+        $batch = new \MongoDeleteBatch($collection);
+
+        $document = ['foo' => 'bar'];
+        $collection->insert($document);
+        unset($document['_id']);
+        $collection->insert($document);
+
+        $this->assertTrue($batch->add(['q' => ['foo' => 'bar'], 'limit' => 0]));
+
+        $expected = [
+            'nRemoved' => 0,
+            'ok' => true,
+        ];
+
+        $this->assertSame($expected, $batch->execute(['w' => 0]));
+
+        $newCollection = $this->getCheckDatabase()->selectCollection('test');
+        $this->assertSame(0, $newCollection->count());
+    }
+
     public function testValidateItem()
     {
         $collection = $this->getCollection();
         $batch = new \MongoDeleteBatch($collection);
 
-        $this->setExpectedException('Exception', "Expected \$item to contain 'q' key");
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage("Expected \$item to contain 'q' key");
 
         $batch->add([]);
     }

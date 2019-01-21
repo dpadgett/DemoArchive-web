@@ -28,6 +28,22 @@ class MongoCursorTest extends TestCase
         $cursor = $collection->find(['foo' => 'bar']);
         $this->assertCount(2, $cursor);
 
+        $this->assertCursorIteration($cursor);
+    }
+
+    public function testCursorHandlesHasNextBeforeIteration()
+    {
+        $this->prepareData();
+
+        $collection = $this->getCollection();
+        $cursor = $collection->find(['foo' => 'bar']);
+        $this->assertTrue($cursor->hasNext());
+
+        $this->assertCursorIteration($cursor);
+    }
+
+    private function assertCursorIteration($cursor)
+    {
         $iterated = 0;
         foreach ($cursor as $key => $item) {
             $this->assertSame($iterated, $cursor->info()['at']);
@@ -56,7 +72,7 @@ class MongoCursorTest extends TestCase
         $client = $this->getClient(['connect' => false], 'mongodb://localhost:28888');
         $cursor = $client->selectCollection('mongo-php-adapter', 'test')->find();
 
-        $this->setExpectedException('MongoConnectionException');
+        $this->expectException(\MongoConnectionException::class);
 
         $cursor->count();
     }
@@ -184,7 +200,8 @@ class MongoCursorTest extends TestCase
 
     public static function getCursorOptions()
     {
-        function getMissingOptionCallback($optionName) {
+        function getMissingOptionCallback($optionName)
+        {
             return function ($value) use ($optionName) {
                 return
                     is_array($value) &&
@@ -192,7 +209,8 @@ class MongoCursorTest extends TestCase
             };
         }
 
-        function getBasicCheckCallback($expected, $optionName) {
+        function getBasicCheckCallback($expected, $optionName)
+        {
             return function ($value) use ($expected, $optionName) {
                 return
                     is_array($value) &&
@@ -201,7 +219,8 @@ class MongoCursorTest extends TestCase
             };
         }
 
-        function getModifierCheckCallback($expected, $modifierName) {
+        function getModifierCheckCallback($expected, $modifierName)
+        {
             return function ($value) use ($expected, $modifierName) {
                 return
                     is_array($value) &&
@@ -332,7 +351,7 @@ class MongoCursorTest extends TestCase
             'started_iterating' => false,
         ];
 
-        $this->assertEquals($expected, $cursor->info());
+        $this->assertSame($expected, $cursor->info());
 
         // Ensure cursor started iterating
         iterator_to_array($cursor);
@@ -348,7 +367,45 @@ class MongoCursorTest extends TestCase
             'connection_type_desc' => 'STANDALONE'
         ];
 
-        $this->assertEquals($expected, $cursor->info());
+        $this->assertSame($expected, $cursor->info());
+    }
+
+    public function testCursorInfoWithBatchSize()
+    {
+        $this->prepareData();
+
+        $collection = $this->getCollection();
+        $cursor = $collection->find(['foo' => 'bar'], ['_id' => false])->skip(1)->limit(3);
+        $cursor->batchSize(1);
+
+        $expected = [
+            'ns' => 'mongo-php-adapter.test',
+            'limit' => 3,
+            'batchSize' => 1,
+            'skip' => 1,
+            'flags' => 0,
+            'query' => ['foo' => 'bar'],
+            'fields' => ['_id' => false],
+            'started_iterating' => false,
+        ];
+
+        $this->assertSame($expected, $cursor->info());
+
+        // Ensure cursor started iterating
+        iterator_to_array($cursor);
+
+        $expected['started_iterating'] = true;
+        $expected += [
+            'id' => 0,
+            'at' => 1,
+            'numReturned' => 1,
+            'server' => 'localhost:27017;-;.;' . getmypid(),
+            'host' => 'localhost',
+            'port' => 27017,
+            'connection_type_desc' => 'STANDALONE'
+        ];
+
+        $this->assertSame($expected, $cursor->info());
     }
 
     public function testReadPreferenceIsInherited()
@@ -360,11 +417,111 @@ class MongoCursorTest extends TestCase
         $this->assertSame(['type' => \MongoClient::RP_SECONDARY, 'tagsets' => [['a' => 'b']]], $cursor->getReadPreference());
     }
 
+    public function testExplain()
+    {
+        $this->prepareData();
+
+        $collection = $this->getCollection();
+        $cursor = $collection->find(['foo' => 'bar'], ['_id' => false])->skip(1)->limit(3);
+
+        $expected = [
+            'queryPlanner' => [
+                'plannerVersion' => 1,
+                'namespace' => 'mongo-php-adapter.test',
+                'indexFilterSet' => false,
+                'parsedQuery' => [
+                    'foo' => ['$eq' => 'bar']
+                ],
+                'winningPlan' => [],
+                'rejectedPlans' => [],
+            ],
+            'executionStats' => [
+                'executionSuccess' => true,
+                'nReturned' => 1,
+                'totalKeysExamined' => 0,
+                'totalDocsExamined' => 3,
+                'executionStages' => [],
+                'allPlansExecution' => [],
+            ],
+            'serverInfo' => [
+                'port' => 27017,
+            ],
+        ];
+
+        $this->assertArraySubset($expected, $cursor->explain());
+    }
+
+    public function testExplainWithEmptyProjection()
+    {
+        $this->prepareData();
+
+        $collection = $this->getCollection();
+        $cursor = $collection->find(['foo' => 'bar']);
+
+        $expected = [
+            'queryPlanner' => [
+                'plannerVersion' => 1,
+                'namespace' => 'mongo-php-adapter.test',
+                'indexFilterSet' => false,
+                'parsedQuery' => [
+                    'foo' => ['$eq' => 'bar']
+                ],
+                'winningPlan' => [],
+                'rejectedPlans' => [],
+            ],
+            'executionStats' => [
+                'executionSuccess' => true,
+                'nReturned' => 2,
+                'totalKeysExamined' => 0,
+                'totalDocsExamined' => 3,
+                'executionStages' => [],
+                'allPlansExecution' => [],
+            ],
+            'serverInfo' => [
+                'port' => 27017,
+            ],
+        ];
+
+        $this->assertArraySubset($expected, $cursor->explain());
+    }
+
+    public function testExplainConvertsQuery()
+    {
+        $this->prepareData();
+
+        $collection = $this->getCollection();
+        $cursor = $collection->find(['foo' => new \MongoRegex('/^b/')]);
+
+        $expected = [
+            'queryPlanner' => [
+                'plannerVersion' => 1,
+                'namespace' => 'mongo-php-adapter.test',
+                'indexFilterSet' => false,
+                'winningPlan' => [],
+                'rejectedPlans' => [],
+            ],
+            'executionStats' => [
+                'executionSuccess' => true,
+                'nReturned' => 2,
+                'totalKeysExamined' => 0,
+                'totalDocsExamined' => 3,
+                'executionStages' => [],
+                'allPlansExecution' => [],
+            ],
+            'serverInfo' => [
+                'port' => 27017,
+            ],
+        ];
+
+        $this->assertArraySubset($expected, $cursor->explain());
+    }
+
+
     /**
      * @return \PHPUnit_Framework_MockObject_MockObject
      */
     protected function getCollectionMock()
     {
-        return $this->getMock('MongoDB\Collection', [], [], '', false);
+        return $this->createMock('MongoDB\Collection', [], [], '', false);
     }
 }

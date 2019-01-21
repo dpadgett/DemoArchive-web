@@ -1,4 +1,19 @@
 <?php
+/*
+ * Copyright 2015-2017 MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 namespace MongoDB\Model;
 
@@ -46,6 +61,16 @@ class IndexInfo implements ArrayAccess
     }
 
     /**
+     * Return the index name to allow casting IndexInfo to string.
+     *
+     * @return string
+     */
+    public function __toString()
+    {
+        return $this->getName();
+    }
+
+    /**
      * Return the index key.
      *
      * @return array
@@ -86,6 +111,26 @@ class IndexInfo implements ArrayAccess
     }
 
     /**
+     * Return whether or not this index is of type 2dsphere.
+     *
+     * @return boolean
+     */
+    public function is2dSphere()
+    {
+        return array_search('2dsphere', $this->getKey(), true) !== false;
+    }
+
+    /**
+     * Return whether or not this index is of type geoHaystack.
+     *
+     * @return boolean
+     */
+    public function isGeoHaystack()
+    {
+        return array_search('geoHaystack', $this->getKey(), true) !== false;
+    }
+
+    /**
      * Return whether this is a sparse index.
      *
      * @see http://docs.mongodb.org/manual/core/index-sparse/
@@ -94,6 +139,16 @@ class IndexInfo implements ArrayAccess
     public function isSparse()
     {
         return ! empty($this->info['sparse']);
+    }
+
+    /**
+     * Return whether or not this index is of type text.
+     *
+     * @return boolean
+     */
+    public function isText()
+    {
+        return array_search('text', $this->getKey(), true) !== false;
     }
 
     /**
