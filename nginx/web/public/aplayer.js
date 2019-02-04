@@ -235,9 +235,46 @@ function topPlayers(offset, limit)
 
 var playerApp = angular.module('playerApp', []);
 
-var player = {'name': 'Loading...', 'matches': [], 'names': []};
+var player = {'name': 'Loading...', 'matches': [], 'names': [{'name': 'Loading...'}]};
+
+var splitIps = [];
+var splitGuids = [];
+var splitNames = [];
+
+var updatePlayer;
+
+var matchIsSplit = function(match) {
+  var split = false;
+  $.each(match.names, function(idx, name) {
+    if ($.inArray(name.ip_hash, splitIps) != -1 || $.inArray(name.guid_hash, splitGuids) != -1) {
+      if (name.guid_hash == 2706 && $.inArray(name.guid_hash, splitGuids) != -1 && match.rawtime <= 1484255083) {
+        // jumy/ninja issue
+        return true;
+      }
+      split = true;
+      return false;
+    }
+  });
+  return split;
+}
 
 playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
+  updatePlayer = function(player) {
+    while (splitNames.length > 0) { splitNames.pop(); }
+    rawnames = [];
+    $.each(player.matches, function(idx, match) {
+      match.split = matchIsSplit(match);
+      if (match.split) {
+        $.each(match.names, function(idx, name) {
+          if ($.inArray(name.rawname, rawnames) == -1) {
+            rawnames.push(name.rawname);
+            splitNames.push(name.name);
+          }
+        });
+      }
+    });
+    $scope.player = player;
+  };
   if (window.location.hash) {
     var hashdata = $.deparam.fragment($.param.fragment(), true);
     $http.get('playerrpc.php?rpc=lookup&id=' + hashdata['id']).success(function(data) {
@@ -259,6 +296,7 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
           match.rating.updated.friendly *= 100;
           match.rating.updated.friendly = Math.floor(match.rating.updated.friendly);
         }
+        match.rawtime = match.time.sec
         match.time = moment(match.time.sec * 1000).format("YYYY-MM-DD hh:mm:ss a");
       });
       player.matches.reverse();
@@ -266,10 +304,69 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
         player.rating.friendly *= 100;
         player.rating.friendly = Math.floor(player.rating.friendly);
       }
-      $scope.player = player;
+      updatePlayer(player);
     });
   }
+  player = {'name': 'Loading...', 'matches': [], 'names': [{'name': $sce.trustAsHtml('Loading...')}]};
   $scope.player = player;
+  $scope.splitIps = splitIps;
+  $scope.splitGuids = splitGuids;
+  $scope.splitNames = splitNames;
+  var floodFill = function() {
+    var added = false;
+    var player = $scope.player;
+    $.each(player.matches, function(idx, match) {
+        if (!match.split) {
+          return;
+        }
+        $.each(match.names, function(idx, name) {
+          if ($.inArray(name.ip_hash, splitIps) == -1) {
+            splitIps.push(name.ip_hash);
+            console.log("Adding IP " + name.ip_hash);
+            added = true;
+            return false;
+          }
+          if ($.inArray(name.guid_hash, splitGuids) == -1) {
+            splitGuids.push(name.guid_hash);
+            console.log("Adding GUID " + name.guid_hash);
+            added = true;
+            return false;
+          }
+        });
+      return !added;
+    });
+    updatePlayer(player);
+    if (added) {
+      floodFill();
+    }
+  };
+  $scope.addIp = function() {
+    if ($.inArray(this.name.ip_hash, splitIps) != -1) {
+      floodFill();
+    } else {
+      $scope.splitIps.push(this.name.ip_hash);
+    }
+    updatePlayer($scope.player);
+  };
+  $scope.addGuid = function() {
+    if ($.inArray(this.name.guid_hash, splitGuids) != -1) {
+      floodFill();
+    } else {
+      $scope.splitGuids.push(this.name.guid_hash);
+    }
+    updatePlayer($scope.player);
+  };
+  $scope.splitPlayers = function() {
+    var matchids = [];
+    $.each($scope.player.matches, function(idx, match) {
+      if (!match.split) {
+        return;
+      }
+      matchids.push(match['_id']);
+    });
+    // need to add an RPC for this, manual for now
+    console.log(JSON.stringify(matchids));
+  };
 });
 
 function mergePlayers() {

@@ -44,10 +44,30 @@ GUID hashes:
     {{guid.guid}}: {{guid.time}}
   </li>
 </ul>
+Names to split:
+<ul>
+  <li ng-repeat="name in splitNames">
+    <span ng-bind-html="name"></span>
+  </li>
+</ul>
+IP hashes to split:
+<ul>
+  <li ng-repeat="ip in splitIps">
+    {{ip}}
+  </li>
+</ul>
+GUID hashes to split:
+<ul>
+  <li ng-repeat="guid in splitGuids">
+    {{guid}}
+  </li>
+</ul>
+<input type="button" value="Split" ng-click="splitPlayers()"/>
+<p>
 Matches:
 <ul>
   <li ng-repeat="match in player.matches">
-    <a href="match.html#rpc=lookup&id={{match._id.match}}" class="is_match_{{match.is_match}}">{{match.time}} {{match._id.match}}</a>: {{match.client_num}} {{match.score.team}}: {{match.rating.start.friendly}}:{{match.rating.updated.friendly}} - <span ng-repeat="name in match.names"><span ng-bind-html="name.name"></span> ({{name.rawname}}) {{name.ip_hash}} {{name.guid_hash}} <span ng-show="!$last">|</span> </span>
+    <a href="match.html#rpc=lookup&id={{match._id.match}}" class="is_match_{{match.is_match}}">{{match.time}} {{match._id.match}}</a>: {{match.client_num}} {{match.score.team}}: {{match.rating.start.friendly}}:{{match.rating.updated.friendly}} - <span ng-repeat="name in match.names" class="is_match_{{match.split}}"><span ng-bind-html="name.name"></span> ({{name.rawname}}) <span ng-click="addIp()" class="is_match_{{match.split}}">{{name.ip_hash}}</span> <span ng-click="addGuid()" class="is_match_{{match.split}}">{{name.guid_hash}}</span> <span ng-show="!$last">|</span> </span>
   </li>
 </ul>
 </body>
