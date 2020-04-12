@@ -363,6 +363,10 @@ if ($rpc == 'numdemos') {
   $result = search_matches(array('_id' => $_GET['id']));
   echo format_result($result);
   exit;
+} else if ($rpc == 'lookupdemo') {
+  $result = search(array('_id' => $_GET['id']));
+  echo format_result($result);
+  exit;
 } else if ($rpc == 'endmatch') {
   // called at scoreboard of a match, or if no scoreboard, on map change.
   // returns json of the match.

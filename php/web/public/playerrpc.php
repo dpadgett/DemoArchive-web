@@ -463,7 +463,7 @@ function python($script, $input) {
 }
 
 function check_merge_ok() {
-  return $_SERVER['REMOTE_ADDR'] == '127.0.0.1' or $_SERVER['REMOTE_ADDR'] == '89.132.165.81' or $_SERVER['REMOTE_ADDR'] == '198.27.210.37'; //'213.222.142.133';
+  return $_SERVER['REMOTE_ADDR'] == '127.0.0.1' or $_SERVER['REMOTE_ADDR'] == '89.132.165.81' or $_SERVER['REMOTE_ADDR'] == '198.27.210.37' or $_SERVER['REMOTE_ADDR'] == '135.180.87.144'; //'213.222.142.133';
 }
 
 if ($rpc == 'topplayers') {
