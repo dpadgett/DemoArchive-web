@@ -1,5 +1,7 @@
 <?
 
+require __DIR__ . '/vendor/autoload.php';
+
 $m = new MongoClient('mongodb://mongodb');
 
 $db = $m->demos;

@@ -277,7 +277,8 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
   };
   if (window.location.hash) {
     var hashdata = $.deparam.fragment($.param.fragment(), true);
-    $http.get('playerrpc.php?rpc=lookup&id=' + hashdata['id']).success(function(data) {
+    var matchonly = window.location.pathname == '/aplayer.html' ? '&match=true': '';
+    $http.get('playerrpc.php?rpc=lookup&id=' + hashdata['id'] + matchonly).success(function(data) {
       var player = data.result[0];
       $.each(player.names, function(idx, name) {
         name.rawname = name.name;

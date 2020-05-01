@@ -32,7 +32,7 @@ Names:
 </ul>
 Matches:
 <ul>
-  <li ng-repeat="match in player.matches | filter:{is_match: true, rating: {}} | limitTo:100">
+  <li ng-repeat="match in player.matches | filter:{is_match: true, rating: {}} | limitTo:1000">
     <a href="match.html#rpc=lookup&id={{match._id.match}}" class="is_match_{{match.is_match}}">{{match.time}}</a>: {{match.client_num}} {{match.score.team}}: {{match.rating.start.friendly}}:{{match.rating.updated.friendly}} - <span ng-repeat="name in match.names"><span ng-bind-html="name.name"></span> <span ng-show="!$last">|</span> </span>
   </li>
 </ul>

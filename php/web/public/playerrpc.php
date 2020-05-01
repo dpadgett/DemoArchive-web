@@ -15,6 +15,7 @@ $db = $m->demos;
 $collection = $db->mindemos;
 $matches = $db->minmatches;
 $players = $db->players;
+$players2 = $db->players2;
 $playerGames = $db->playerGames;
 
 $rpc = NULL;
@@ -189,15 +190,32 @@ function inflate_player($min_player) {
   return $player;
 }
 
+function match_player($player) {
+  return full_player_impl($player, true);
+}
+
 function full_player($player) {
+  return full_player_impl($player, false);
+}
+
+function full_player_impl($player, $matchonly) {
   if (!isset($player['matches'])) {
     global $playerGames;
-    $cursor = $playerGames->find(array('_id.player' => $player['_id']/*, 'is_match' => true*/));
-    $cursor->sort(array('time' => 1));
+    // db.playerGames.find({'_id.player': ObjectId('55dc3e00cb15c73790d8396c')}).sort({'time': -1}).explain()
+    $query = array('_id.player' => $player['_id']);
+    $limit = 2000;
+    if ($matchonly == true) {
+      $query['is_match'] = true;
+      $query['rating.updated.raw.sigma'] = array('$exists' => true);
+      $limit = 100;
+    }
+    $cursor = $playerGames->find($query)->sort(array('time' => -1))->limit($limit);
+    //$cursor->sort(array('time' => 1));
     $player['matches'] = array();
     foreach ($cursor as $doc) {
       $player['matches'][] = $doc;
     }
+    $player['matches'] = array_reverse($player['matches']);
   }
   return $player;
 }
@@ -277,6 +295,41 @@ function search_matches($query) {
 function search_players($query, $inflater) {
   global $players;
   $cursor = $players->find($query, array());
+  $offset = 0;
+  if (isset($_GET['offset'])) {
+    $offset = (int) $_GET['offset'];
+  }
+  $limit = 25;
+  if (isset($_GET['limit'])) {
+    $limit = (int) $_GET['limit'];
+  }
+  $cursor->sort(array('num_matches' => -1));
+  $count = $cursor->count();
+  $cursor->skip($offset)->limit($limit);
+  $result = array();
+  foreach ($cursor as $doc) {
+    $result[] = call_user_func($inflater, $doc);
+  }
+  return array('result' => $result, 'offset' => $offset, 'limit' => $limit, 'total' => $count);
+}
+
+function search_players2($query, $inflater) {
+  global $players;
+  global $playerGames;
+  $cursor = $playerGames->find($query, array());
+  $cursor->sort(array('time' => -1));
+  $cursor->limit(1);
+  $result = array();
+  foreach ($cursor as $doc) {
+    $playerdoc = $players->findOne(array('_id' => $doc['_id']['player']));
+    $result[] = call_user_func($inflater, $playerdoc);
+  }
+  return array('result' => $result, 'offset' => 0, 'limit' => 1, 'total' => sizeof($result));
+}
+
+function search_players3($query, $inflater) {
+  global $players2;
+  $cursor = $players2->find($query, array());
   $offset = 0;
   if (isset($_GET['offset'])) {
     $offset = (int) $_GET['offset'];
@@ -463,7 +516,7 @@ function python($script, $input) {
 }
 
 function check_merge_ok() {
-  return $_SERVER['REMOTE_ADDR'] == '127.0.0.1' or $_SERVER['REMOTE_ADDR'] == '89.132.165.81' or $_SERVER['REMOTE_ADDR'] == '198.27.210.37' or $_SERVER['REMOTE_ADDR'] == '135.180.87.144'; //'213.222.142.133';
+  return $_SERVER['REMOTE_ADDR'] == '127.0.0.1' or $_SERVER['REMOTE_ADDR'] == '89.132.165.81' or $_SERVER['REMOTE_ADDR'] == '198.27.210.37' or $_SERVER['REMOTE_ADDR'] == '89.133.234.82'; // or $_SERVER['REMOTE_ADDR'] == '135.180.87.144'; //'213.222.142.133';
 }
 
 if ($rpc == 'topplayers') {
@@ -492,7 +545,7 @@ if ($rpc == 'topplayers') {
   foreach ($searchplayers as $idx => $player) {
     $ip_hash = $player[0];
     $guid_hash = $player[1];
-    $result = search_players(array('$or' => array(array('ip_hash.ip' => (int) $ip_hash), array('guid_hash.guid' => (int) $guid_hash))), "resorted_player");
+    $result = search_players2(array('$or' => array(array('names.ip_hash' => (int) $ip_hash), array('names.guid_hash' => (int) $guid_hash))), "resorted_player");
 
     $player_match_cmp = player_match_cmp($ip_hash, $guid_hash);
     usort($result['result'], $player_match_cmp);
@@ -525,7 +578,12 @@ if ($rpc == 'topplayers') {
   //echo $command."\n";
   system($command);
 } else if ($rpc == 'lookup') {
-  $result = search_players(array('_id' => new MongoId($_GET['id'])), "full_player");
+  if (isset($_GET['match']) && $_GET['match'] == 'true') {
+    $inflater = "match_player";
+  } else {
+    $inflater = "full_player";
+  }
+  $result = search_players(array('_id' => new MongoId($_GET['id'])), $inflater);
   echo format_result($result);
   exit;
 } else if ($rpc == 'checkmerge') {
@@ -555,7 +613,7 @@ if ($rpc == 'topplayers') {
 } else if ($rpc == 'debugplayer') {
   $ip_hash = $_GET['id1'];
   $guid_hash = $_GET['id2'];
-  $result = search_players(array('$or' => array(array('ip_hash.ip' => (int) $ip_hash), array('guid_hash.guid' => (int) $guid_hash))), "resorted_player");
+  $result = search_players2(array('$or' => array(array('names.ip_hash' => (int) $ip_hash), array('names.guid_hash' => (int) $guid_hash))), "resorted_player");
   
   $player_match_cmp = player_match_cmp($ip_hash, $guid_hash);
   usort($result['result'], $player_match_cmp);
