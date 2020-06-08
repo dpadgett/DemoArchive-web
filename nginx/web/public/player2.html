@@ -1,0 +1,50 @@
+<html>
+<head>
+<title>JKA Demo Archive</title>
+<link rel="stylesheet" href="jquery-ui-1.10.4.custom.css">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+<script src="jquery.ba-bbq.min.js"></script>
+<script src="moment.min.js"></script>
+<script src="sprintf.js"></script>
+<script src="player2.js"></script>
+<!-- Stuff needed on initial load is loaded as JSONP -->
+<script src="minrpc.php?rpc=numdemos&jsonp=true"></script>
+<script src="playerrpc.py?rpc=topplayers&jsonp=true"></script>
+<script src="playerrpc.py?rpc=checkmerge&jsonp=true"></script>
+<style type="text/css" id="merge">
+.merge {
+  display: none;
+}
+</style>
+<style type="text/css">
+form#search {
+  display: inline;
+}
+input[name="player"] {
+  display: inline;
+}
+input[value="Search"] {
+  display: inline;
+}
+</style>
+</head>
+<body>
+<h1>JKA Demo Archive</h1>
+<h2>Now hosting <span id="numdemos"></span> demos</h2>
+<form id="search">
+Player Search:<br>
+<label for="player">Player name</label>
+<input type="text" name="player" size="30"/>
+<input type="submit" value="Search"/>
+</form>
+<p/>
+<span id="searchresult">Top players:</span><br>
+<table id="topplayers" border="1">
+<tr><td class="merge"><input type="checkbox" id="mergeall"/></td><td>Link</td><td>Names</td><td>Rating</td><td>Play Time</td><td># Matches</td></tr>
+</table>
+<span id="page"></span>
+<p/>
+<button class="merge" id="mergebutton" disabled="true">Merge Players</button>
+</body>
+</html>

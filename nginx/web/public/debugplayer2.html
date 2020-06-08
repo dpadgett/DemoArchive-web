@@ -1,0 +1,83 @@
+<html ng-app="playerApp">
+<head>
+<title>JKA Demo Archive</title>
+<link rel="stylesheet" href="jquery-ui-1.10.4.custom.css">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.2/angular.min.js"></script>
+<script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+<script src="jquery.ba-bbq.min.js"></script>
+<script src="moment.min.js"></script>
+<script src="sprintf.js"></script>
+<script src="aplayer2.js"></script>
+<!-- Stuff needed on initial load is loaded as JSONP -->
+<script src="minrpc.php?rpc=numdemos&jsonp=true"></script>
+<script src="playerrpc.php?rpc=checkmerge&jsonp=true"></script>
+<style type="text/css">
+.is_match_true {
+  font-weight: bold;
+}
+</style>
+</head>
+<body ng-controller="PlayerCtrl">
+<h1>JKA Demo Archive</h1>
+<h2>Now hosting <span id="numdemos"></span> demos</h2>
+<h2>Player <span ng-bind-html="player.name"></span> ({{player._id['$oid']}})</span>:</h2>
+Merge with player: <input type="text" id="mergeid"/><input type="button" value="Merge" onclick="mergePlayers()"/>
+<p>
+Set player name: <input type="text" id="name" value="{{player.rawname}}"/><input type="button" value="Set" onclick="setPlayerName()"/>
+<p>
+Rating: {{player.rating.friendly}}
+<p>
+<!--Sessions:
+<ul>
+  <li ng-repeat="session in player.sessions">
+    {{session._id}}: {{session.num_games}}
+  </li>
+</ul>-->
+Names:
+<ul>
+  <li ng-repeat="name in player.names">
+    <span ng-bind-html="name.name"></span> ({{name.rawname}}): {{name.time}}
+  </li>
+</ul>
+IP hashes:
+<ul>
+  <li ng-repeat="ip in player.ip_hash">
+    {{ip.ip}}: {{ip.time}}
+  </li>
+</ul>
+GUID hashes:
+<ul>
+  <li ng-repeat="guid in player.guid_hash">
+    {{guid.guid}}: {{guid.time}}
+  </li>
+</ul>
+<p>
+Newmod IDs:
+<ul>
+  <li ng-repeat="nmid in player.nmid_hash">
+    {{nmid.newmod_id}}: {{nmid.time}}
+  </li>
+</ul>
+<p>
+Sessions to split:
+<ul>
+  <li ng-repeat="session in splitSessions">
+    {{session}}
+  </li>
+</ul>
+<input type="button" value="Split" ng-click="splitPlayers()"/>
+<p>
+Matches:
+<ul>
+  <li ng-repeat="match in player.matches"><span ng-click="addSession()" class="is_match_{{match.split}}">
+    <a href="match.html#rpc=lookup&id={{match._id.match}}" class="is_match_{{match.is_match}}">{{match.time}} {{match._id.match}}</a>: {{match.rating.rating.start.friendly}}:{{match.rating.rating.updated.friendly}}
+    <ul>
+      <li ng-repeat="game in match.games">
+      {{game.clientid}} <span ng-repeat="team in game.teams">{{team.team}} </span> - <span ng-repeat="name in game.names"><span ng-bind-html="name.name"></span>  ({{name.rawname}}) </span> {{game.ip}} {{game.guid}} 
+      </li>
+    </ul>
+  </span></li>
+</ul>
+</body>
+</html>

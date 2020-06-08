@@ -5,7 +5,8 @@ function rpc(name, data, callback)
   alldata['rpc'] = name;
   $.ajax({
     type: 'GET',
-    url: 'minrpc.php',
+    //url: 'minrpc.php',
+    url: 'minrpc.py',
     data: alldata,
     dataType: 'json',
   }).done(callback);
@@ -141,10 +142,30 @@ function lookup(id)
   });
 }
 
+var entityMap = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+  '/': '&#x2F;',
+  '`': '&#x60;',
+  '=': '&#x3D;'
+};
+
+function escapeHtml(string) {
+  return String(string).replace(/[&<>"'`=\/]/g, function (s) {
+    return entityMap[s];
+  });
+}
+
 function writeDemoRow(demo, relativeTime, offset)
 {
   relativeTime = typeof relativeTime !== 'undefined' ? relativeTime : false;
   var time_created_millis = demo['time_created']['sec'] * 1000 + demo['time_created']['usec'] / 1000;
+  if ('$date' in demo['time_created']) {
+    time_created_millis = demo['time_created']['$date'];
+  }
   if (relativeTime) {
     var time_created_str = moment(time_created_millis).fromNow();
   } else {
@@ -195,11 +216,12 @@ function writeDemoRow(demo, relativeTime, offset)
         playerdedup[player['client']] = true;
         var demolink = '';
         var clientKey = '' + player['client'];
-        var playerName = colorize(player['client_name']);
+        console.log(player);
+        var playerName = colorize(escapeHtml(player['client_name']));
         if (clientKey in fileMap) {
           demolink = '<a href="getdemo.php?demo=' + encodeURIComponent(fileMap[clientKey]['id']) + '">Link</a>';
           if ('player' in fileMap[clientKey]) {
-            playerName = '<a href="aplayer.html#id=' + encodeURIComponent(fileMap[clientKey]['player']) + '" style="color: black;">' + playerName + '</a>';
+            playerName = '<a href="aplayer2.html#id=' + encodeURIComponent(fileMap[clientKey]['player']) + '" style="color: black;">' + playerName + '</a>';
             if ('rating' in fileMap[clientKey]) {
               var elo = function(rating) {
                 return ~~((rating['friendly'] * 100));
