@@ -386,6 +386,15 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
                 name.rawname = name.name;
                 name.name = $sce.trustAsHtml(colorize(escapeHtml(name.name)));
               });
+              if ('ns' in game) {
+                $.each(game.ns.shots, function(idx, shot) {
+                  var seconds = (Math.floor(shot.time / 1000) % 60);
+                  if (seconds < 10) {
+                    seconds = "0" + seconds;
+                  }
+                  shot.human_time = (Math.floor(shot.time / 1000 / 60)) + ":" + seconds;
+                });
+              }
             });
           });
           if (addGames(games)) {

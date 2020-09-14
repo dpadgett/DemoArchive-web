@@ -216,7 +216,7 @@ function writeDemoRow(demo, relativeTime, offset)
         playerdedup[player['client']] = true;
         var demolink = '';
         var clientKey = '' + player['client'];
-        console.log(player);
+        //console.log(player);
         var playerName = colorize(escapeHtml(player['client_name']));
         if (clientKey in fileMap) {
           demolink = '<a href="getdemo.php?demo=' + encodeURIComponent(fileMap[clientKey]['id']) + '">Link</a>';
@@ -228,6 +228,17 @@ function writeDemoRow(demo, relativeTime, offset)
               }
               playerName = playerName + ' (' + elo(fileMap[clientKey]['rating']['start']) + ' - ' + elo(fileMap[clientKey]['rating']['updated']) + ')';
             }
+          }
+          if ('ns' in fileMap[clientKey]) {
+            $.each(fileMap[clientKey]['ns'], function(idx, shot) {
+              var seconds = (Math.floor(shot.time / 1000) % 60);
+              if (seconds < 10) {
+                seconds = "0" + seconds;
+              }
+              var time = (Math.floor(shot.time / 1000 / 60)) + ":" + seconds;
+              var score = Math.round(((shot.score - 1) * 10) + 1);
+              demolink += '<br><a href="trimdemo.php?demo=' + encodeURIComponent(fileMap[clientKey]['id']) + '&time=' + shot.time + '&before=9000&after=7000&prefix=' + encodeURIComponent((Math.round(shot.score * 1000) / 1000) + ' ') + '"><b>NS</b>@' + time + ' - ' + score + '/10</a>';
+            });
           }
         } else if (demo['demos'].length > 0 && player['team'] != 'SPECTATOR') {
           demolink = '<a style="color:#888888;" href="mergedemo.php?matchid=' + encodeURIComponent(demo['_id']) + '&clientid=' + player['client'] + '">Link</a>';
@@ -489,7 +500,7 @@ $(document).ready(function()
         $('input[name="server"]').val(hashdata['server']);
       }
       if ('match' in hashdata) {
-        $('input[name="match"]').prop('checked', hashdata['match']);
+        $('input[name="match"]').prop('checked', hashdata['match'] === 'true');
       }
       search(hashdata['offset'], hashdata['limit']);
     } else if (rpcname == 'recentDemos') {

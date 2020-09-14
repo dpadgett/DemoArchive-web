@@ -38,6 +38,11 @@ Matches:
     <ul>
       <li ng-repeat="game in match.games">
       {{game.clientid}} <span ng-repeat="team in game.teams">{{team.team}} </span> - <span ng-repeat="name in game.names"><span ng-bind-html="name.name"></span>  </span>
+      <ul>
+        <li ng-repeat="shot in game.ns.shots">
+          Nice Shot! Score {{shot.score}} at {{shot.human_time}}
+        </li>
+      </ul>
       </li>
     </ul>
   </li>
