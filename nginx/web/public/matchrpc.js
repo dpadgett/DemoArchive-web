@@ -101,7 +101,7 @@ function search(offset, limit)
   }
   var before = $('input[name="before"]').val();
   if (before != '') {
-    data['before'] = before;
+    data['before'] = moment(before, "YYYY-MM-DD").toDate() / 1000;
   }
   var map = $('input[name="map"]').val();
   if (map != '') {
@@ -181,6 +181,7 @@ function writeDemoRow(demo, relativeTime, offset)
     hostname,
     time_created_str,
     demo['mapname'],
+    //'{{SCORES}}',
     moment.duration(demo['map_end_time'] - demo['map_start_time']).humanize()
   ];
   var teamScores = ['', '', '', ''];
@@ -229,17 +230,32 @@ function writeDemoRow(demo, relativeTime, offset)
               playerName = playerName + ' (' + elo(fileMap[clientKey]['rating']['start']) + ' - ' + elo(fileMap[clientKey]['rating']['updated']) + ')';
             }
           }
+          var formatTime = function(time) {
+            var seconds = (Math.floor(time / 1000) % 60);
+            if (seconds < 10) {
+              seconds = "0" + seconds;
+            }
+            return (Math.floor(time / 1000 / 60)) + ":" + seconds;
+          };
+          var extralinks = [];
           if ('ns' in fileMap[clientKey]) {
             $.each(fileMap[clientKey]['ns'], function(idx, shot) {
-              var seconds = (Math.floor(shot.time / 1000) % 60);
-              if (seconds < 10) {
-                seconds = "0" + seconds;
-              }
-              var time = (Math.floor(shot.time / 1000 / 60)) + ":" + seconds;
+              var time = formatTime(shot.time);
               var score = Math.round(((shot.score - 1) * 10) + 1);
-              demolink += '<br><a href="trimdemo.php?demo=' + encodeURIComponent(fileMap[clientKey]['id']) + '&time=' + shot.time + '&before=9000&after=7000&prefix=' + encodeURIComponent((Math.round(shot.score * 1000) / 1000) + ' ') + '"><b>NS</b>@' + time + ' - ' + score + '/10</a>';
+            extralinks.push({time: shot.time, link: '<br><a href="trimdemo.php?demo=' + encodeURIComponent(fileMap[clientKey]['id']) + '&time=' + shot.time + '&before=9000&after=7000&prefix=' + encodeURIComponent((Math.round(shot.score * 1000) / 1000) + ' ') + '"><b>NS</b>@' + time + ' - ' + score + '/10</a>'});
             });
           }
+          if ('bookmarks' in fileMap[clientKey]) {
+            $.each(fileMap[clientKey]['bookmarks'], function(idx, bookmark) {
+              if (bookmark.mark != "ns") {
+                return;
+              }
+              var time = formatTime(bookmark.time);
+              extralinks.push({time: bookmark.time, link: '<br><a href="trimdemo.php?demo=' + encodeURIComponent(fileMap[clientKey]['id']) + '&time=' + bookmark.time + '&before=9000&after=7000&prefix=' + encodeURIComponent(bookmark.mark + ' ') + '"><b>NS</b>@' + time + ' - manual</a>'});
+            });
+          }
+          extralinks.sort(function(left, right) { return right.time - left.time; });
+          demolink += extralinks.map(function(link) { return link.link; }).join("");
         } else if (demo['demos'].length > 0 && player['team'] != 'SPECTATOR') {
           demolink = '<a style="color:#888888;" href="mergedemo.php?matchid=' + encodeURIComponent(demo['_id']) + '&clientid=' + player['client'] + '">Link</a>';
         }
@@ -330,7 +346,91 @@ function writeDemoRow(demo, relativeTime, offset)
   }
   var row = $('<tr>');
   for (var i = 0; i < cells.length; i++) {
-    row.append($('<td>' + cells[i] + '</td>').attr('rowspan', totalRows(allmapcells)));
+    var cellstr = cells[i];
+    var cell = $('<td>').attr('rowspan', totalRows(allmapcells));
+    if (cellstr == '{{SCORES}}') {
+      var root = $('<div>').attr('style', 'position:relative;');
+      var levelshot = $('<img>').attr('alt', demo['mapname']).attr('src', '/maps/' + demo['mapname'].replaceAll('/', '').replace('ã', 'a').toLowerCase() + '.jpg').attr('width', 640).attr('height', 480);
+      root.append(levelshot);
+      var mapname = $('<div>').attr('style', 'position:absolute; bottom:0; width:320px; color:white; text-shadow: 2px 2px 4px #000000;').text(demo['mapname']);
+      root.append(mapname);
+      var sbroot = $('<div>').attr('style', 'position:absolute; top:100; width:640px; color: white;');
+      root.append(sbroot);
+      var sbtable = $('<table>').attr('style', 'color: white; text-shadow: 1px 1px 2px rgba(34, 34, 34, 1);');
+      sbroot.append(sbtable);
+      var header = $('<tr>');
+      sbtable.append(header);
+      header.append($('<td>').attr('width', '5%').attr('style', 'height: 30px;'));
+      header.append($('<td>').attr('width', '8%').text('Time'));
+      header.append($('<td>').attr('width', '8%').text('Ping'));
+      header.append($('<td>').attr('width', '10%').text('Score'));
+      header.append($('<td>').attr('width', '20%').text('Name'));
+
+      header.append($('<td>').attr('width', '3%'));
+
+      header.append($('<td>').attr('width', '8%').text('Time'));
+      header.append($('<td>').attr('width', '8%').text('Ping'));
+      header.append($('<td>').attr('width', '10%').text('Score'));
+      header.append($('<td>').attr('width', '20%').text('Name'));
+      header.append($('<td>').attr('width', '5%'));
+      var teamheader = $('<tr>');
+      sbtable.append(teamheader);
+      var rule = 'border-bottom: 1px solid rgba(169, 169, 169, 1);';
+      teamheader.append($('<td>'));
+      teamheader.append($('<td>').attr('style', rule));
+      var redbg = 'background-color: rgba(255, 51, 51, 0.33);';
+      teamheader.append($('<td>').attr('style', redbg + rule).text('72'));
+      teamheader.append($('<td>').attr('style', redbg + rule).text(teamScores[0]));
+      teamheader.append($('<td>').attr('style', rule + 'color:rgba(255, 51, 51, 1); text-align:center;').text('Red Team'));
+
+      teamheader.append($('<td>'));
+
+      teamheader.append($('<td>').attr('style', rule));
+      var bluebg = 'background-color: rgba(51, 51, 255, 0.33);';
+      teamheader.append($('<td>').attr('style', bluebg + rule).text('72'));
+      teamheader.append($('<td>').attr('style', bluebg + rule).text(teamScores[1]));
+      teamheader.append($('<td>').attr('style', rule + 'color:rgba(51, 51, 255, 1); text-align:center;').text('Blue Team'));
+      teamheader.append($('<td>'));
+      var players = allmapcells[0]['players'];
+      for (var j = 0; j < maxScoreRows(players); j++) {
+        var playerrow = $('<tr>');
+        sbtable.append(playerrow);
+        for (var key of ['red', 'blue']) {//players) {
+          var player = ['', '', '', '', ''];
+          if (players[key].length > j) {
+            player = players[key][j];
+          }
+          var bg;
+          var name = player[2];
+          var rmatch = name.match(/\(.* - .*\)$/);
+          if (rmatch) {
+            name = name.substring(0, rmatch.index);
+          }
+          if (key == 'red') {
+            player = [player[0], player[1], player[4], player[3], name];
+            bg = redbg;
+          } else {
+            player = ['', player[1], player[4], player[3], name, player[0]];
+            bg = bluebg;
+          }
+          $.each(player, function(idx, text) {
+            var playercell = $('<td>').html(text);
+            if (idx > 0 && idx < 4) {
+              playercell.attr('style', bg);
+            }
+            playerrow.append(playercell);
+          });
+        }
+      }
+      /*
+      '<tr><td></td><td style="background-color: rgba(255, 51, 51, 0.33);">20</td><td style="background-color: rgba(255, 51, 51, 0.33);">59</td><td style="background-color: rgba(255, 51, 51, 0.33);">519</td><td>teh</td></tr>' +
+      '</table></div>' +
+      '</div>';*/
+      cell.append(root);
+    } else {
+      cell.html(cellstr);
+    }
+    row.append(cell);
   }
   var rowWritten = false;
   var rowStyles = ['', 'background-color:#e0e0e0'];
@@ -358,18 +458,18 @@ function writeDemoRow(demo, relativeTime, offset)
           row.append($('<td>' + text + '</td>').attr('style', style));
         });
       }
-      $('#recentdemos tr:last').after(row);
+      $('#recentdemos > tbody > tr').last().after(row);
       rowWritten = true;
       row = $('<tr>');
     }
     if (!rowWritten) {
-      $('#recentdemos tr:last').after(row);
+      $('#recentdemos > tbody > tr').last().after(row);
       rowWritten = true;
     }
     row = $('<tr>');
   }
   if (!rowWritten) {
-    $('#recentdemos tr:last').after(row);
+    $('#recentdemos > tbody > tr').last().after(row);
   }
   return offset + allmapcells.length;
 }

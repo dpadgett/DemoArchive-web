@@ -277,8 +277,92 @@ var matchIsSplit = function(match) {
   return split;
 }
 
+var elochart = null;
+
+function toggleLinearScale() {
+  elochart.options.scales.xAxes[0].distribution = $('#linearscale').prop('checked') ? 'linear' : 'series';
+  elochart.update();
+}
+
 playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
-  updatePlayer = function(player) {
+	var ctx = document.getElementById('elochart').getContext('2d');
+  ctx.canvas.width = 1000;
+  ctx.canvas.height = 300;
+  //ctx.canvas.style.backgroundColor = 'rgba(255,255,255,255)';
+	var chartColors = {"red":"rgb(255, 99, 132)","orange":"rgb(255, 159, 64)","yellow":"rgb(255, 205, 86)","green":"rgb(75, 192, 192)","blue":"rgb(54, 162, 235)","purple":"rgb(153, 102, 255)","grey":"rgb(201, 203, 207)"};
+	var color = Chart.helpers.color;
+  var lastTooltip = null;
+	elochart = new Chart(ctx, {
+		type: 'line',
+		data: {
+			datasets: [{
+				label: 'Elo',
+				data: [],
+				backgroundColor: color(chartColors.red).alpha(0.5).rgbString(),
+				borderColor: chartColors.red,
+				fill: false,
+        lineTension: 0,
+        borderWidth: 2,
+        pointRadius: 2,
+        steppedLine: 'after',
+			}]
+		},
+		options: {
+			responsive: true,
+			title: {
+				display: false,
+				text: 'Elo'
+			},
+			scales: {
+				xAxes: [{
+					type: 'time',
+          distribution: 'series',
+					display: true,
+					scaleLabel: {
+						display: true,
+						labelString: 'Date'
+					},
+					ticks: {
+						major: {
+							fontStyle: 'bold',
+							fontColor: '#FF0000'
+						}
+					}
+				}],
+				yAxes: [{
+					display: true,
+					scaleLabel: {
+						display: true,
+						labelString: 'Elo'
+					}
+				}]
+			},
+      tooltips: {
+        intersect: false,
+        mode: 'index',
+        callbacks: {
+          label: function(tooltipItem, myData) {
+            lastTooltip = tooltipItem;
+            var label = myData.datasets[tooltipItem.datasetIndex].label || '';
+            if (label) {
+              label += ': ';
+            }
+            label += parseFloat(tooltipItem.value).toFixed(0);
+            var match = myData.datasets[tooltipItem.datasetIndex].data[tooltipItem.index].match;
+            label += ' (' + match._id.match + ')';
+            return label;
+          }
+        }
+      },
+      onClick: function (evt, item) {
+        console.log(lastTooltip);
+        var match = elochart.data.datasets[lastTooltip.datasetIndex].data[lastTooltip.index].match;
+        window.location = '/match.html#rpc=lookup&id=' + match._id.match;
+      }
+		}
+	});
+
+	updatePlayer = function(player) {
     /*while (splitNames.length > 0) { splitNames.pop(); }
     rawnames = [];
     $.each(player.matches, function(idx, match) {
@@ -294,8 +378,8 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
     });*/
     $scope.player = player;
   };
-  var maxgames = 10000 //1000;
-  var maxsessiongames = 100; //100;
+  var maxgames = 100000; //1000;
+  var maxsessiongames = 10000; //100;
   addGames = function(games) {
     if ($scope.player.matches.length >= maxgames) { return false; }
     var cutgames = games;
@@ -306,6 +390,9 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
     $scope.player.matches.push(...cutgames);
     $scope.player.matches.sort((a, b) => b.rawtime - a.rawtime);
     $.each(games, function(idx, match) {
+      if ('rating' in match) {
+        elochart.data.datasets[0].data.push({x: moment(match.rawtime).toDate(), y: match.rating.rating.updated.friendly, match: match});
+      }
       $.each(match.games, function(idx, game) {
         var time = game.end - game.start;
         var curip = $scope.player.ipmap[game.ip] || {'ip': game.ip, 'rawtime': 0};
@@ -331,6 +418,9 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
         });
       });
     });
+    elochart.data.datasets[0].label = strip_colors($scope.player.rawname) + "'s Elo";
+    elochart.data.datasets[0].data.sort((a, b) => b.x - a.x);
+    elochart.update();
     $scope.player.names = Object.values($scope.player.namesmap);
     $scope.player.names.sort((a, b) => b.rawtime - a.rawtime);
     $scope.player.ip_hash = Object.values($scope.player.ipmap);
@@ -395,6 +485,15 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
                   shot.human_time = (Math.floor(shot.time / 1000 / 60)) + ":" + seconds;
                 });
               }
+              if ('bookmarks' in game) {
+                $.each(game.bookmarks, function(idx, bookmark) {
+                  var seconds = (Math.floor(bookmark.time / 1000) % 60);
+                  if (seconds < 10) {
+                    seconds = "0" + seconds;
+                  }
+                  bookmark.human_time = (Math.floor(bookmark.time / 1000 / 60)) + ":" + seconds;
+                });
+              }
             });
           });
           if (addGames(games)) {
@@ -434,7 +533,13 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
       matchids.push(match['_id']);
     });
     // need to add an RPC for this, manual for now
-    console.log(JSON.stringify(matchids));
+    //console.log(JSON.stringify(matchids));
+	console.log(JSON.stringify($scope.splitSessions));
+	// there is now an RPC, but untested
+    playerpostrpc('splitplayers', {'ids': $scope.splitSessions}, function(response) {
+	  console.log(response);
+      location.reload();
+    });
   };
 });
 

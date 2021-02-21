@@ -7,6 +7,7 @@
 <script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
 <script src="jquery.ba-bbq.min.js"></script>
 <script src="moment.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
 <script src="sprintf.js"></script>
 <script src="aplayer2.js"></script>
 <!-- Stuff needed on initial load is loaded as JSONP -->
@@ -23,6 +24,12 @@
 <h2>Now hosting <span id="numdemos"></span> demos</h2>
 <h2>Player <span ng-bind-html="player.name"></span> ({{player._id['$oid']}})</span>:</h2>
 Rating: {{player.rating.friendly}}
+<p>
+<div style="width:1000px;">
+<div><input type="checkbox" id="linearscale" onclick="toggleLinearScale();"></input><label for="linearscale">Linear scale</label></div>
+<canvas id="elochart" width="40" height="40"></canvas>
+</div>
+<a href="playerrpc.py?rpc=ratings&id={{player._id['$oid']}}">Historical CSV</a>
 <p>
 Names:
 <ul>
@@ -41,6 +48,11 @@ Matches:
       <ul>
         <li ng-repeat="shot in game.ns.shots">
           Nice Shot! Score {{shot.score}} at {{shot.human_time}}
+        </li>
+      </ul>
+      <ul>
+        <li ng-repeat="bookmark in game.bookmarks">
+          Bookmark {{bookmark.mark}} at {{bookmark.human_time}}
         </li>
       </ul>
       </li>
