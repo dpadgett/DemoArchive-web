@@ -5,7 +5,7 @@ function rpc(name, data, callback)
   alldata['rpc'] = name;
   $.ajax({
     type: 'GET',
-    url: 'rpc.php',
+    url: 'minrpc.py',
     data: alldata,
     dataType: 'json',
   }).done(callback);
@@ -99,6 +99,9 @@ function search(offset, limit)
     for (var idx = 0; idx < response.result.length; idx++) {
       offset = writeDemoRow(response.result[idx], false, offset);
     }
+    if (window.JKPiPPlayer && window.JKPiPPlayer.decorateDemoLinks) {
+      window.JKPiPPlayer.decorateDemoLinks();
+    }
     writePagination(search, parseInt(response.total), parseInt(response.offset), parseInt(response.limit));
   });
 }
@@ -106,7 +109,12 @@ function search(offset, limit)
 function writeDemoRow(demo, relativeTime, offset)
 {
   relativeTime = typeof relativeTime !== 'undefined' ? relativeTime : false;
-  var time_created_millis = demo['time_created']['sec'] * 1000 + demo['time_created']['usec'] / 1000;
+  var time_created_millis = 0;
+  if (demo['time_created'] && '$date' in demo['time_created']) {
+    time_created_millis = demo['time_created']['$date'];
+  } else if (demo['time_created'] && 'sec' in demo['time_created']) {
+    time_created_millis = demo['time_created']['sec'] * 1000 + demo['time_created']['usec'] / 1000;
+  }
   if (relativeTime) {
     var time_created_str = moment(time_created_millis).fromNow();
   } else {
@@ -118,11 +126,11 @@ function writeDemoRow(demo, relativeTime, offset)
   if ('player' in demo) {
     player = demo['player'];
   }
-  var metadata = demo['metadata'];
+  var metadata = demo['metadata'] || {};
   var totaltime_millis = 0;
-  var clientid = metadata['client']['id'];
+  var clientid = (metadata['client'] && metadata['client']['id']) || 0;
   var allmapcells = [];
-  $.each(metadata['maps'], function(idx, map) {
+  $.each(metadata['maps'] || [], function(idx, map) {
     var mapcells = [];
     mapcells.push(map['mapname']);
     var maptime = map['map_end_time'] - map['map_start_time'];

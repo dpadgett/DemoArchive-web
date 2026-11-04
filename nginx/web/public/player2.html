@@ -9,9 +9,10 @@
 <script src="sprintf.js"></script>
 <script src="player2.js"></script>
 <!-- Stuff needed on initial load is loaded as JSONP -->
-<script src="minrpc.php?rpc=numdemos&jsonp=true"></script>
+<script src="minrpc.py?rpc=numdemos&jsonp=true"></script>
 <script src="playerrpc.py?rpc=topplayers&jsonp=true"></script>
 <script src="playerrpc.py?rpc=checkmerge&jsonp=true"></script>
+<script src="/jkplayer/jk-pip-player.js?v=20261104g"></script>
 <style type="text/css" id="merge">
 .merge {
   display: none;
@@ -38,10 +39,11 @@ Player Search:<br>
 <input type="text" name="player" size="30"/>
 <input type="submit" value="Search"/>
 </form>
+<input type="submit" id="newplayers" value="New Players"/>
 <p/>
 <span id="searchresult">Top players:</span><br>
 <table id="topplayers" border="1">
-<tr><td class="merge"><input type="checkbox" id="mergeall"/></td><td>Link</td><td>Names</td><td>Rating</td><td>Play Time</td><td># Matches</td></tr>
+<tr><td class="merge"><input type="checkbox" id="mergeall"/></td><td>Link</td><td>Names</td><td>Rating</td><td>Play Time</td><td># Matches</td><td>First Game</td></tr>
 </table>
 <span id="page"></span>
 <p/>

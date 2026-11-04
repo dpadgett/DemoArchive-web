@@ -1,5 +1,6 @@
 <html ng-app="playerApp">
 <head>
+<meta charset="utf-8">
 <title>JKA Demo Archive</title>
 <link rel="stylesheet" href="jquery-ui-1.10.4.custom.css">
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
@@ -11,8 +12,9 @@
 <script src="sprintf.js"></script>
 <script src="aplayer2.js"></script>
 <!-- Stuff needed on initial load is loaded as JSONP -->
-<script src="minrpc.php?rpc=numdemos&jsonp=true"></script>
-<script src="playerrpc.php?rpc=checkmerge&jsonp=true"></script>
+<script src="minrpc.py?rpc=numdemos&jsonp=true"></script>
+<script src="playerrpc.py?rpc=checkmerge&jsonp=true"></script>
+<script src="/jkplayer/jk-pip-player.js?v=20261104g"></script>
 <style type="text/css">
 .is_match_true {
   font-weight: bold;
@@ -44,15 +46,15 @@ Matches:
     <a href="match.html#rpc=lookup&id={{match._id.match}}" class="is_match_{{match.is_match}}">{{match.time}} {{match._id.match}}</a>: {{match.rating.rating.start.friendly}}:{{match.rating.rating.updated.friendly}}
     <ul>
       <li ng-repeat="game in match.games">
-      {{game.clientid}} <span ng-repeat="team in game.teams">{{team.team}} </span> - <span ng-repeat="name in game.names"><span ng-bind-html="name.name"></span>  </span>
+      {{game.clientid}} <span ng-repeat="team in game.teams">{{team.team}} </span> - <span ng-repeat="name in game.names"><span ng-bind-html="name.name"></span>  </span> <span ng-repeat="dlink in game.demo_links"><a ng-href="{{dlink.url}}" href="{{dlink.url}}">{{dlink.label}}</a> </span>
       <ul>
         <li ng-repeat="shot in game.ns.shots">
-          Nice Shot! Score {{shot.score}} at {{shot.human_time}}
+          <a ng-href="{{shot.demo_url}}" href="{{shot.demo_url}}">Nice Shot! Score {{shot.score}} at {{shot.human_time}}</a>
         </li>
       </ul>
       <ul>
         <li ng-repeat="bookmark in game.bookmarks">
-          Bookmark {{bookmark.mark}} at {{bookmark.human_time}}
+          <a ng-href="{{bookmark.demo_url}}" href="{{bookmark.demo_url}}">Bookmark {{bookmark.mark}} at {{bookmark.human_time}}</a>
         </li>
       </ul>
       </li>

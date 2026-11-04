@@ -177,6 +177,10 @@ function mergePlayers() {
   });
 }
 
+var dateFromObjectId = function (objectId) {
+	return new Date(parseInt(objectId['$oid'].substring(0, 8), 16) * 1000);
+};
+
 function writePlayerRow(player, offset)
 {
   player['verified'] = ('name' in player);
@@ -192,6 +196,9 @@ function writePlayerRow(player, offset)
     rating,
     moment.duration(player['time']).humanize(),
     player.num_matches,
+    //moment(dateFromObjectId(player['_id'])).format("dddd, MMMM Do YYYY, h:mm:ss a"),
+    moment((player['first_game']||{})['$date'] || dateFromObjectId(player['_id'])).format("dddd, MMMM Do YYYY, h:mm:ss a"),
+    //moment.duration(dateFromObjectId(player['_id']) - player['first_game']['$date']).humanize(),
   ];
   if (player['verified']) {
     cells[0] += " <img src=\"verified.jpg\" height=\"15\" width=\"15\" style=\"vertical-align:text-bottom\"/>";
@@ -296,12 +303,29 @@ function topPlayers(offset, limit)
   });
 }
 
+function newPlayers(offset, limit)
+{
+  var hashdata = {'rpc': 'newPlayers', 'offset': offset, 'limit': limit};
+  window.location.hash = $.param(hashdata);
+  var data = { 'offset': offset, 'limit': limit };
+  playerrpc('newplayers', data, function(response) {
+    $('#searchresult').text('New players:');
+    $('#topplayers').find('tr:gt(0)').remove();
+    var offset = 0;
+    for (var idx = 0; idx < response.result.length; idx++) {
+      offset = writePlayerRow(response.result[idx], true, offset);
+    }
+    writePagination(newPlayers, parseInt(response.total), parseInt(response.offset), parseInt(response.limit));
+  });
+}
+
 $(document).ready(function()
 {
   if (checkmerge) {
     $('#merge').text('');
   }
   $('form#search').attr('onSubmit', 'search(0, 50); return false;');
+  $('#newplayers').click(() => newPlayers(0, 50));
   $('#mergeall').click(checkAllMergeBoxes);
   $('#mergebutton').click(mergePlayers);
   var header = $('#topplayers').find('tr:eq(0)');
@@ -321,6 +345,8 @@ $(document).ready(function()
       search(hashdata['offset'], hashdata['limit']);
     } else if (rpcname == 'topPlayers') {
       topPlayers(hashdata['offset'], hashdata['limit']);
+    } else if (rpcname == 'newPlayers') {
+      newPlayers(hashdata['offset'], hashdata['limit']);
     } else {
       hashRendered = false;
     }

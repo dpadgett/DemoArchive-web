@@ -177,7 +177,8 @@ function writeDemoRow(demo, relativeTime, offset)
     hostname = Q_CleanStr(demo['sv_hostname'])
   }
   var cells = [
-    '<a href="#rpc=lookup&id=' + demo['_id'] + '" onclick="lookup(\'' + demo['_id'] + '\');">Link</a>',
+    '<a href="#rpc=lookup&id=' + demo['_id'] + '" onclick="lookup(\'' + demo['_id'] + '\');">Link</a><br>'
+        + '<a href="/minrpc.py?rpc=matchdemo&id='+ demo['_id'] + '">Demo</a>',
     hostname,
     time_created_str,
     demo['mapname'],
@@ -187,6 +188,10 @@ function writeDemoRow(demo, relativeTime, offset)
   var teamScores = ['', '', '', ''];
   var fileMap = {};
   $.each(demo['demos'], function(idx, file) {
+    if ((file['client_id'] in fileMap) && ('rating' in fileMap[file['client_id']])) {
+      // multiple players with same slot - prefer one with elo
+      return;
+    }
     fileMap[file['client_id']] = file;
   });
   if ('scores' in demo && demo['scores'].length > 0) {
@@ -218,6 +223,7 @@ function writeDemoRow(demo, relativeTime, offset)
         var demolink = '';
         var clientKey = '' + player['client'];
         //console.log(player);
+        //console.log(fileMap);
         var playerName = colorize(escapeHtml(player['client_name']));
         if (clientKey in fileMap) {
           demolink = '<a href="getdemo.php?demo=' + encodeURIComponent(fileMap[clientKey]['id']) + '">Link</a>';
@@ -247,11 +253,9 @@ function writeDemoRow(demo, relativeTime, offset)
           }
           if ('bookmarks' in fileMap[clientKey]) {
             $.each(fileMap[clientKey]['bookmarks'], function(idx, bookmark) {
-              if (bookmark.mark != "ns") {
-                return;
-              }
+              var markStr = bookmark.mark || "ns";
               var time = formatTime(bookmark.time);
-              extralinks.push({time: bookmark.time, link: '<br><a href="trimdemo.php?demo=' + encodeURIComponent(fileMap[clientKey]['id']) + '&time=' + bookmark.time + '&before=9000&after=7000&prefix=' + encodeURIComponent(bookmark.mark + ' ') + '"><b>NS</b>@' + time + ' - manual</a>'});
+              extralinks.push({time: bookmark.time, link: '<br><a href="trimdemo.php?demo=' + encodeURIComponent(fileMap[clientKey]['id']) + '&time=' + bookmark.time + '&before=13000&after=7000&prefix=' + encodeURIComponent(markStr + ' ') + '"><b>NS</b>@' + time + ' - manual</a>'});
             });
           }
           extralinks.sort(function(left, right) { return right.time - left.time; });
@@ -259,13 +263,14 @@ function writeDemoRow(demo, relativeTime, offset)
         } else if (demo['demos'].length > 0 && player['team'] != 'SPECTATOR') {
           demolink = '<a style="color:#888888;" href="mergedemo.php?matchid=' + encodeURIComponent(demo['_id']) + '&clientid=' + player['client'] + '">Link</a>';
         }
+        var extras = [(player.ctfstats || {}).dmgdlt || (player.ctfstats || {}).dmg || ''];
         players[player['team'].toLowerCase()].push([
           demolink,
           player['time'],
           playerName,
           player['score'],
           player['ping'],
-        ]);
+        ].concat((player['team'] == 'RED' || player['team'] == 'BLUE') ? extras : []));
       };
     };
     $.each(['redplayers', 'blueplayers', 'freeplayers', 'specplayers'], function(_, team) {
@@ -321,7 +326,7 @@ function writeDemoRow(demo, relativeTime, offset)
           "Disconnected Players:",
           "",
           "",
-        ]);
+        ].concat((player['team'] == 'RED' || player['team'] == 'BLUE') ? [""] : []));
       }
       playerbuilder(null, player);
     });
@@ -348,88 +353,88 @@ function writeDemoRow(demo, relativeTime, offset)
   for (var i = 0; i < cells.length; i++) {
     var cellstr = cells[i];
     var cell = $('<td>').attr('rowspan', totalRows(allmapcells));
-    if (cellstr == '{{SCORES}}') {
-      var root = $('<div>').attr('style', 'position:relative;');
-      var levelshot = $('<img>').attr('alt', demo['mapname']).attr('src', '/maps/' + demo['mapname'].replaceAll('/', '').replace('ã', 'a').toLowerCase() + '.jpg').attr('width', 640).attr('height', 480);
-      root.append(levelshot);
-      var mapname = $('<div>').attr('style', 'position:absolute; bottom:0; width:320px; color:white; text-shadow: 2px 2px 4px #000000;').text(demo['mapname']);
-      root.append(mapname);
-      var sbroot = $('<div>').attr('style', 'position:absolute; top:100; width:640px; color: white;');
-      root.append(sbroot);
-      var sbtable = $('<table>').attr('style', 'color: white; text-shadow: 1px 1px 2px rgba(34, 34, 34, 1);');
-      sbroot.append(sbtable);
-      var header = $('<tr>');
-      sbtable.append(header);
-      header.append($('<td>').attr('width', '5%').attr('style', 'height: 30px;'));
-      header.append($('<td>').attr('width', '8%').text('Time'));
-      header.append($('<td>').attr('width', '8%').text('Ping'));
-      header.append($('<td>').attr('width', '10%').text('Score'));
-      header.append($('<td>').attr('width', '20%').text('Name'));
+    // if (cellstr == '{{SCORES}}') {
+      // var root = $('<div>').attr('style', 'position:relative;');
+      // var levelshot = $('<img>').attr('alt', demo['mapname']).attr('src', '/maps/' + demo['mapname'].replaceAll('/', '').replace('\xe3', 'a').toLowerCase() + '.jpg').attr('width', 640).attr('height', 480);
+      // root.append(levelshot);
+      // var mapname = $('<div>').attr('style', 'position:absolute; bottom:0; width:320px; color:white; text-shadow: 2px 2px 4px #000000;').text(demo['mapname']);
+      // root.append(mapname);
+      // var sbroot = $('<div>').attr('style', 'position:absolute; top:100; width:640px; color: white;');
+      // root.append(sbroot);
+      // var sbtable = $('<table>').attr('style', 'color: white; text-shadow: 1px 1px 2px rgba(34, 34, 34, 1);');
+      // sbroot.append(sbtable);
+      // var header = $('<tr>');
+      // sbtable.append(header);
+      // header.append($('<td>').attr('width', '5%').attr('style', 'height: 30px;'));
+      // header.append($('<td>').attr('width', '8%').text('Time'));
+      // header.append($('<td>').attr('width', '8%').text('Ping'));
+      // header.append($('<td>').attr('width', '10%').text('Score'));
+      // header.append($('<td>').attr('width', '20%').text('Name'));
 
-      header.append($('<td>').attr('width', '3%'));
+      // header.append($('<td>').attr('width', '3%'));
 
-      header.append($('<td>').attr('width', '8%').text('Time'));
-      header.append($('<td>').attr('width', '8%').text('Ping'));
-      header.append($('<td>').attr('width', '10%').text('Score'));
-      header.append($('<td>').attr('width', '20%').text('Name'));
-      header.append($('<td>').attr('width', '5%'));
-      var teamheader = $('<tr>');
-      sbtable.append(teamheader);
-      var rule = 'border-bottom: 1px solid rgba(169, 169, 169, 1);';
-      teamheader.append($('<td>'));
-      teamheader.append($('<td>').attr('style', rule));
-      var redbg = 'background-color: rgba(255, 51, 51, 0.33);';
-      teamheader.append($('<td>').attr('style', redbg + rule).text('72'));
-      teamheader.append($('<td>').attr('style', redbg + rule).text(teamScores[0]));
-      teamheader.append($('<td>').attr('style', rule + 'color:rgba(255, 51, 51, 1); text-align:center;').text('Red Team'));
+      // header.append($('<td>').attr('width', '8%').text('Time'));
+      // header.append($('<td>').attr('width', '8%').text('Ping'));
+      // header.append($('<td>').attr('width', '10%').text('Score'));
+      // header.append($('<td>').attr('width', '20%').text('Name'));
+      // header.append($('<td>').attr('width', '5%'));
+      // var teamheader = $('<tr>');
+      // sbtable.append(teamheader);
+      // var rule = 'border-bottom: 1px solid rgba(169, 169, 169, 1);';
+      // teamheader.append($('<td>'));
+      // teamheader.append($('<td>').attr('style', rule));
+      // var redbg = 'background-color: rgba(255, 51, 51, 0.33);';
+      // teamheader.append($('<td>').attr('style', redbg + rule).text('72'));
+      // teamheader.append($('<td>').attr('style', redbg + rule).text(teamScores[0]));
+      // teamheader.append($('<td>').attr('style', rule + 'color:rgba(255, 51, 51, 1); text-align:center;').text('Red Team'));
 
-      teamheader.append($('<td>'));
+      // teamheader.append($('<td>'));
 
-      teamheader.append($('<td>').attr('style', rule));
-      var bluebg = 'background-color: rgba(51, 51, 255, 0.33);';
-      teamheader.append($('<td>').attr('style', bluebg + rule).text('72'));
-      teamheader.append($('<td>').attr('style', bluebg + rule).text(teamScores[1]));
-      teamheader.append($('<td>').attr('style', rule + 'color:rgba(51, 51, 255, 1); text-align:center;').text('Blue Team'));
-      teamheader.append($('<td>'));
-      var players = allmapcells[0]['players'];
-      for (var j = 0; j < maxScoreRows(players); j++) {
-        var playerrow = $('<tr>');
-        sbtable.append(playerrow);
-        for (var key of ['red', 'blue']) {//players) {
-          var player = ['', '', '', '', ''];
-          if (players[key].length > j) {
-            player = players[key][j];
-          }
-          var bg;
-          var name = player[2];
-          var rmatch = name.match(/\(.* - .*\)$/);
-          if (rmatch) {
-            name = name.substring(0, rmatch.index);
-          }
-          if (key == 'red') {
-            player = [player[0], player[1], player[4], player[3], name];
-            bg = redbg;
-          } else {
-            player = ['', player[1], player[4], player[3], name, player[0]];
-            bg = bluebg;
-          }
-          $.each(player, function(idx, text) {
-            var playercell = $('<td>').html(text);
-            if (idx > 0 && idx < 4) {
-              playercell.attr('style', bg);
-            }
-            playerrow.append(playercell);
-          });
-        }
-      }
-      /*
-      '<tr><td></td><td style="background-color: rgba(255, 51, 51, 0.33);">20</td><td style="background-color: rgba(255, 51, 51, 0.33);">59</td><td style="background-color: rgba(255, 51, 51, 0.33);">519</td><td>teh</td></tr>' +
-      '</table></div>' +
-      '</div>';*/
-      cell.append(root);
-    } else {
+      // teamheader.append($('<td>').attr('style', rule));
+      // var bluebg = 'background-color: rgba(51, 51, 255, 0.33);';
+      // teamheader.append($('<td>').attr('style', bluebg + rule).text('72'));
+      // teamheader.append($('<td>').attr('style', bluebg + rule).text(teamScores[1]));
+      // teamheader.append($('<td>').attr('style', rule + 'color:rgba(51, 51, 255, 1); text-align:center;').text('Blue Team'));
+      // teamheader.append($('<td>'));
+      // var players = allmapcells[0]['players'];
+      // for (var j = 0; j < maxScoreRows(players); j++) {
+        // var playerrow = $('<tr>');
+        // sbtable.append(playerrow);
+        // for (var key of ['red', 'blue']) {//players) {
+          // var player = ['', '', '', '', ''];
+          // if (players[key].length > j) {
+            // player = players[key][j];
+          // }
+          // var bg;
+          // var name = player[2];
+          // var rmatch = name.match(/\(.* - .*\)$/);
+          // if (rmatch) {
+            // name = name.substring(0, rmatch.index);
+          // }
+          // if (key == 'red') {
+            // player = [player[0], player[1], player[4], player[3], name];
+            // bg = redbg;
+          // } else {
+            // player = ['', player[1], player[4], player[3], name, player[0]];
+            // bg = bluebg;
+          // }
+          // $.each(player, function(idx, text) {
+            // var playercell = $('<td>').html(text);
+            // if (idx > 0 && idx < 4) {
+              // playercell.attr('style', bg);
+            // }
+            // playerrow.append(playercell);
+          // });
+        // }
+      // }
+      // /*
+      // '<tr><td></td><td style="background-color: rgba(255, 51, 51, 0.33);">20</td><td style="background-color: rgba(255, 51, 51, 0.33);">59</td><td style="background-color: rgba(255, 51, 51, 0.33);">519</td><td>teh</td></tr>' +
+      // '</table></div>' +
+      // '</div>';*/
+      // cell.append(root);
+    // } else {
       cell.html(cellstr);
-    }
+    // }
     row.append(cell);
   }
   var rowWritten = false;
@@ -442,7 +447,7 @@ function writeDemoRow(demo, relativeTime, offset)
     var teamScores = allmapcells[i]['teamScores'];
     {
       for (var j = 0; j < 4; j++) {
-        row.append($('<td>' + teamScores[j] + '</td>').attr('colspan', 5).attr('style', style));
+        row.append($('<td>' + teamScores[j] + '</td>').attr('colspan', 6).attr('style', style));
       }
       $('#recentdemos tr:last').after(row);
       rowWritten = true;
@@ -451,6 +456,7 @@ function writeDemoRow(demo, relativeTime, offset)
     for (var j = 0; j < maxScoreRows(players); j++) {
       for (var key in players) {
         var player = ['', '', '', '', ''];
+        if (key == 'red' || key == 'blue') { player = player.concat(['']); }
         if (players[key].length > j) {
           player = players[key][j];
         }
@@ -563,16 +569,23 @@ $(document).ready(function()
     'Free',
     'Spec',
   ];
+  var extraScoreHeaders = ['Dmgdlt'];
+  var teamScoreHeaders = {
+    'Red': scoreheaders.concat(extraScoreHeaders),
+    'Blue': scoreheaders.concat(extraScoreHeaders),
+    'Free': scoreheaders,
+    'Spec': scoreheaders
+  };
   var tds = $($('#recentdemos').find('tr:eq(0)')[0]).find('td');
   $.each(tds, function(idx, td) {
     $(td).attr('rowspan', 2);
   });
   $.each(teams, function(idx, team) {
-    header.append($('<td>' + team + '</td>').attr('colspan', scoreheaders.length));
+    header.append($('<td>' + team + '</td>').attr('colspan', teamScoreHeaders[team].length));
   });
   header = $('<tr>');
   $.each(teams, function(idx, team) {
-    $.each(scoreheaders, function(idx, scoreheader) {
+    $.each(teamScoreHeaders[team], function(idx, scoreheader) {
       header.append($('<td>' + scoreheader + '</td>'));
     });
   });

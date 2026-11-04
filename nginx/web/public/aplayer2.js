@@ -349,7 +349,7 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
             }
             label += parseFloat(tooltipItem.value).toFixed(0);
             var match = myData.datasets[tooltipItem.datasetIndex].data[tooltipItem.index].match;
-            label += ' (' + match._id.match + ')';
+            label += ' (' + match + ')';
             return label;
           }
         }
@@ -357,7 +357,7 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
       onClick: function (evt, item) {
         console.log(lastTooltip);
         var match = elochart.data.datasets[lastTooltip.datasetIndex].data[lastTooltip.index].match;
-        window.location = '/match.html#rpc=lookup&id=' + match._id.match;
+        window.location = '/match.html#rpc=lookup&id=' + match;
       }
 		}
 	});
@@ -378,8 +378,16 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
     });*/
     $scope.player = player;
   };
-  var maxgames = 100000; //1000;
-  var maxsessiongames = 10000; //100;
+  var maxgames = 10000; //1000;
+  var maxsessiongames = 1000; //100;
+  addRatings = function(ratings) {
+    $.each(ratings, function(idx, rating) {
+      elochart.data.datasets[0].data.push({x: moment(rating.time['$date']).toDate(), y: rating.rating.updated.friendly * 100, match: rating['_id']['match']});
+    });
+    elochart.data.datasets[0].label = strip_colors($scope.player.rawname) + "'s Elo";
+    elochart.data.datasets[0].data.sort((a, b) => b.x - a.x);
+    elochart.update();
+  }
   addGames = function(games) {
     if ($scope.player.matches.length >= maxgames) { return false; }
     var cutgames = games;
@@ -390,9 +398,6 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
     $scope.player.matches.push(...cutgames);
     $scope.player.matches.sort((a, b) => b.rawtime - a.rawtime);
     $.each(games, function(idx, match) {
-      if ('rating' in match) {
-        elochart.data.datasets[0].data.push({x: moment(match.rawtime).toDate(), y: match.rating.rating.updated.friendly, match: match});
-      }
       $.each(match.games, function(idx, game) {
         var time = game.end - game.start;
         var curip = $scope.player.ipmap[game.ip] || {'ip': game.ip, 'rawtime': 0};
@@ -418,9 +423,6 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
         });
       });
     });
-    elochart.data.datasets[0].label = strip_colors($scope.player.rawname) + "'s Elo";
-    elochart.data.datasets[0].data.sort((a, b) => b.x - a.x);
-    elochart.update();
     $scope.player.names = Object.values($scope.player.namesmap);
     $scope.player.names.sort((a, b) => b.rawtime - a.rawtime);
     $scope.player.ip_hash = Object.values($scope.player.ipmap);
@@ -432,8 +434,11 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
     //$scope.player.name = $scope.player.names[0].name;
     return $scope.player.matches.length < maxgames;
   }
-  if (window.location.hash) {
-    var hashdata = $.deparam.fragment($.param.fragment(), true);
+  {
+    var hashdata = window.location.hash ? $.deparam.fragment($.param.fragment(), true) : {};
+    if (!hashdata['id']) {
+      hashdata['id'] = '5950160f87b4d04bf8d5e099';
+    }
     var matchonly = window.location.pathname == '/aplayer2.html' ? '&match=true': '';
     $http.get('playerrpc.py?rpc=lookup&id=' + hashdata['id'] + matchonly).success(function(player) {
       player.matches = [];
@@ -455,7 +460,7 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
         player.rating.friendly = Math.floor(player.rating.friendly);
       }
       updatePlayer(player);
-      var sessions = player['sessions'];
+      var sessions = player['sessions'] || [];
       sessions.sort((a, b) => b.last_game['$date'] - a.last_game['$date']);
       var fetchSession = function(session) {
         if (!session) return;
@@ -476,6 +481,22 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
                 name.rawname = name.name;
                 name.name = $sce.trustAsHtml(colorize(escapeHtml(name.name)));
               });
+              var toFullDemoPath = function(relPath) {
+                if (!relPath) return '';
+                return relPath.indexOf('/cygdrive/U/demos/') === 0 ? relPath : ('/cygdrive/U/demos/' + relPath);
+              };
+              game.demo_links = [];
+              if ('demos' in game && Array.isArray(game.demos)) {
+                $.each(game.demos, function(dIdx, dPath) {
+                  var fullPath = toFullDemoPath(dPath);
+                  if (fullPath) {
+                    game.demo_links.push({
+                      url: 'getdemo.php?demo=' + encodeURIComponent(fullPath),
+                      label: game.demos.length > 1 ? ('Demo ' + (dIdx + 1)) : 'Demo'
+                    });
+                  }
+                });
+              }
               if ('ns' in game) {
                 $.each(game.ns.shots, function(idx, shot) {
                   var seconds = (Math.floor(shot.time / 1000) % 60);
@@ -483,6 +504,9 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
                     seconds = "0" + seconds;
                   }
                   shot.human_time = (Math.floor(shot.time / 1000 / 60)) + ":" + seconds;
+                  var shotDemoIdx = (typeof shot.d === 'number' && game.demos && game.demos[shot.d]) ? shot.d : 0;
+                  var shotDemoPath = (game.demos && game.demos[shotDemoIdx]) ? toFullDemoPath(game.demos[shotDemoIdx]) : '';
+                  shot.demo_url = 'trimdemo.php?demo=' + encodeURIComponent(shotDemoPath) + '&time=' + shot.time + '&before=9000&after=5000&prefix=' + encodeURIComponent((Math.round(shot.score * 1000) / 1000) + ' ');
                 });
               }
               if ('bookmarks' in game) {
@@ -492,19 +516,28 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
                     seconds = "0" + seconds;
                   }
                   bookmark.human_time = (Math.floor(bookmark.time / 1000 / 60)) + ":" + seconds;
+                  var bmDemoIdx = (typeof bookmark.d === 'number' && game.demos && game.demos[bookmark.d]) ? bookmark.d : 0;
+                  var bmDemoPath = (game.demos && game.demos[bmDemoIdx]) ? toFullDemoPath(game.demos[bmDemoIdx]) : '';
+                  bookmark.demo_url = 'trimdemo.php?demo=' + encodeURIComponent(bmDemoPath) + '&time=' + bookmark.time + '&before=13000&after=5000&prefix=' + encodeURIComponent((bookmark.mark || 'bm') + ' ');
                 });
               }
             });
           });
-          if (addGames(games)) {
+          var more = addGames(games);
+          setTimeout(function() {
+            if (window.JKPiPPlayer && window.JKPiPPlayer.decorateDemoLinks) {
+              window.JKPiPPlayer.decorateDemoLinks();
+            }
+          }, 50);
+          if (more) {
             fetchSession(sessions.shift());
           }
         });
       };
       fetchSession(sessions.shift());
-      // multi-call will parallelize the fetching
-      fetchSession(sessions.shift());
-      fetchSession(sessions.shift());
+    });
+    $http.get('playerrpc.py?rpc=jratings&id=' + hashdata['id']).success(function(ratings) {
+      addRatings(ratings);
     });
   }
   player = {'name': 'Loading...', 'rawname': '', 'matches': [], 'names': [{'name': $sce.trustAsHtml('Loading...')}]};
@@ -516,11 +549,28 @@ playerApp.controller('PlayerCtrl', function ($scope, $http, $sce) {
       match.split = $.inArray(JSON.stringify(match._id.session), $scope.splitSessions) != -1;
     });
   };
-  $scope.addSession = function() {
+  $scope.removeSession = function() {
+    $scope.splitSessions.splice($.inArray(JSON.stringify(this.session), $scope.splitSessions), 1);
+    markMatches();
+  };
+  $scope.addSession = function(type) {
     if (!this.match.split) {
-      $scope.splitSessions.push(JSON.stringify(this.match._id.session));
-    } else {
+      if ($.inArray(JSON.stringify(this.match._id.session), $scope.splitSessions) == -1) {
+        $scope.splitSessions.push(JSON.stringify(this.match._id.session));
+      }
+    } else if (type == 'remove') {
       $scope.splitSessions.splice($.inArray(JSON.stringify(this.match._id.session), $scope.splitSessions), 1);
+    } else {
+      var that = this;
+      $.each($scope.player.matches, function(idx, match) {
+        if ((type == 'guid' && (that.match._id.session.guid == match._id.session.guid)) ||
+            (type == 'ip' && (that.match._id.session.ip == match._id.session.ip)) ||
+            (type == 'newmod' && (that.match._id.session.newmod_id == match._id.session.newmod_id))) {
+          if ($.inArray(JSON.stringify(match._id.session), $scope.splitSessions) == -1) {
+            $scope.splitSessions.push(JSON.stringify(match._id.session));
+          }
+        }
+      });
     }
     markMatches();
   };
