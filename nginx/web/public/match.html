@@ -1,6 +1,24 @@
 <html>
 <head>
 <meta charset="utf-8">
+<script>
+(function () {
+  var search = window.location.search || "";
+  var suppress = false;
+  if (typeof URLSearchParams === "function") {
+    var params = new URLSearchParams(search);
+    var c = params.get("classic");
+    if ((params.has("classic") && c !== "0" && c !== "false") || params.get("noredirect") === "1") {
+      suppress = true;
+    }
+  } else if (/[?&](?:classic=(?!0|false)|classic(?:&|$)|noredirect=1)/i.test(search)) {
+    suppress = true;
+  }
+  if (!suppress) {
+    window.location.replace("modern.html" + (window.location.hash || ""));
+  }
+})();
+</script>
 <title>JKA Demo Archive</title>
 <link rel="stylesheet" href="jquery-ui-1.10.4.custom.css">
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>

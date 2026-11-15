@@ -1,0 +1,4493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="text-scale" content="scale" />
+  <meta name="color-scheme" content="light dark" />
+  <script>
+    try {
+      document.querySelector('meta[name="color-scheme"]').content =
+        localStorage.getItem("color-scheme") ?? "light dark";
+    } catch (_) {}
+  </script>
+  <title>JKA Demo Archive — Competitive Match &amp; Demo Hub</title>
+  <style>
+    /* ==========================================================================
+       1. Design Tokens & Adaptive Light/Dark Theme (modern-web-guidance)
+       ========================================================================== */
+    @property --fade-start {
+      syntax: "<length>";
+      inherits: false;
+      initial-value: 0px;
+    }
+    @property --fade-end {
+      syntax: "<length>";
+      inherits: false;
+      initial-value: 0px;
+    }
+
+    :root {
+      /* Raw Light Palette */
+      --bg-canvas-light: #f4f6f9;
+      --bg-surface-light: #ffffff;
+      --bg-elevated-light: #eef2f7;
+      --bg-subtle-light: #f8fafc;
+      --border-default-light: #cbd5e1;
+      --border-strong-light: #94a3b8;
+      --text-primary-light: #0f172a;
+      --text-secondary-light: #334155;
+      --text-muted-light: #475569;
+      --accent-light: #1d4ed8;
+      --accent-hover-light: #1e40af;
+      --accent-soft-light: rgba(29, 78, 216, 0.1);
+      --accent-contrast-light: #ffffff;
+
+      --red-team-light: #b91c1c;
+      --red-surface-light: rgba(185, 28, 28, 0.07);
+      --red-border-light: rgba(185, 28, 28, 0.32);
+
+      --blue-team-light: #1d4ed8;
+      --blue-surface-light: rgba(29, 78, 216, 0.07);
+      --blue-border-light: rgba(29, 78, 216, 0.32);
+
+      --gold-light: #92400e;
+      --gold-bg-light: rgba(217, 119, 6, 0.14);
+      --gold-border-light: rgba(180, 83, 9, 0.42);
+
+      --pos-light: #15803d;
+      --pos-bg-light: rgba(21, 128, 61, 0.12);
+      --neg-light: #b91c1c;
+      --neg-bg-light: rgba(185, 28, 28, 0.12);
+
+      --scrollbar-track-light: #e2e8f0;
+      --scrollbar-thumb-light: #64748b;
+
+      /* Adaptive Q3 Color Palette — Light Mode (WCAG >= 4.5:1 against #fff) */
+      --q3-0-light: #0f172a; /* ^0 Black */
+      --q3-1-light: #b91c1c; /* ^1 Red */
+      --q3-2-light: #15803d; /* ^2 Green */
+      --q3-3-light: #a16207; /* ^3 Yellow/Amber */
+      --q3-4-light: #1d4ed8; /* ^4 Blue */
+      --q3-5-light: #0e7490; /* ^5 Cyan */
+      --q3-6-light: #a21caf; /* ^6 Magenta */
+      --q3-7-light: #1e293b; /* ^7 White -> Slate Ink on light surfaces */
+
+      /* Raw Dark Palette (Matched to OpenJK/jaMME Wasm PiP Player) */
+      --bg-canvas-dark: #090d14;
+      --bg-surface-dark: #111722;
+      --bg-elevated-dark: #182130;
+      --bg-subtle-dark: #0d121b;
+      --border-default-dark: #2a3649;
+      --border-strong-dark: #41536e;
+      --text-primary-dark: #e6edf3;
+      --text-secondary-dark: #b6c2cf;
+      --text-muted-dark: #8b9bb0;
+      --accent-dark: #58a6ff;
+      --accent-hover-dark: #79b8ff;
+      --accent-soft-dark: rgba(56, 139, 253, 0.16);
+      --accent-contrast-dark: #06101f;
+
+      --red-team-dark: #ff6b6b;
+      --red-surface-dark: rgba(248, 81, 73, 0.09);
+      --red-border-dark: rgba(248, 81, 73, 0.38);
+
+      --blue-team-dark: #58a6ff;
+      --blue-surface-dark: rgba(56, 139, 253, 0.09);
+      --blue-border-dark: rgba(56, 139, 253, 0.38);
+
+      --gold-dark: #f5b741;
+      --gold-bg-dark: rgba(245, 183, 65, 0.14);
+      --gold-border-dark: rgba(245, 183, 65, 0.45);
+
+      --pos-dark: #4ade80;
+      --pos-bg-dark: rgba(74, 222, 128, 0.14);
+      --neg-dark: #fb7185;
+      --neg-bg-dark: rgba(251, 113, 133, 0.14);
+
+      --scrollbar-track-dark: #111722;
+      --scrollbar-thumb-dark: #64748b;
+
+      /* Adaptive Q3 Color Palette — Dark Mode */
+      --q3-0-dark: #94a3b8; /* ^0 Black -> Gunmetal silver so clan tags stay legible */
+      --q3-1-dark: #ff6b6b; /* ^1 Red */
+      --q3-2-dark: #4ade80; /* ^2 Green */
+      --q3-3-dark: #facc15; /* ^3 Yellow */
+      --q3-4-dark: #60a5fa; /* ^4 Blue */
+      --q3-5-dark: #22d3ee; /* ^5 Cyan */
+      --q3-6-dark: #e879f9; /* ^6 Magenta */
+      --q3-7-dark: #f1f5f9; /* ^7 White */
+
+      /* Default Fallback Assignments (Light) */
+      --bg-canvas: var(--bg-canvas-light);
+      --bg-surface: var(--bg-surface-light);
+      --bg-elevated: var(--bg-elevated-light);
+      --bg-subtle: var(--bg-subtle-light);
+      --border-default: var(--border-default-light);
+      --border-strong: var(--border-strong-light);
+      --text-primary: var(--text-primary-light);
+      --text-secondary: var(--text-secondary-light);
+      --text-muted: var(--text-muted-light);
+      --accent: var(--accent-light);
+      --accent-hover: var(--accent-hover-light);
+      --accent-soft: var(--accent-soft-light);
+      --accent-contrast: var(--accent-contrast-light);
+      --red-team: var(--red-team-light);
+      --red-surface: var(--red-surface-light);
+      --red-border: var(--red-border-light);
+      --blue-team: var(--blue-team-light);
+      --blue-surface: var(--blue-surface-light);
+      --blue-border: var(--blue-border-light);
+      --gold: var(--gold-light);
+      --gold-bg: var(--gold-bg-light);
+      --gold-border: var(--gold-border-light);
+      --pos: var(--pos-light);
+      --pos-bg: var(--pos-bg-light);
+      --neg: var(--neg-light);
+      --neg-bg: var(--neg-bg-light);
+      --scrollbar-track: var(--scrollbar-track-light);
+      --scrollbar-thumb: var(--scrollbar-thumb-light);
+      --q3-0: var(--q3-0-light);
+      --q3-1: var(--q3-1-light);
+      --q3-2: var(--q3-2-light);
+      --q3-3: var(--q3-3-light);
+      --q3-4: var(--q3-4-light);
+      --q3-5: var(--q3-5-light);
+      --q3-6: var(--q3-6-light);
+      --q3-7: var(--q3-7-light);
+
+      /* Fallback for browsers without light-dark() */
+      @media (prefers-color-scheme: dark) {
+        --bg-canvas: var(--bg-canvas-dark);
+        --bg-surface: var(--bg-surface-dark);
+        --bg-elevated: var(--bg-elevated-dark);
+        --bg-subtle: var(--bg-subtle-dark);
+        --border-default: var(--border-default-dark);
+        --border-strong: var(--border-strong-dark);
+        --text-primary: var(--text-primary-dark);
+        --text-secondary: var(--text-secondary-dark);
+        --text-muted: var(--text-muted-dark);
+        --accent: var(--accent-dark);
+        --accent-hover: var(--accent-hover-dark);
+        --accent-soft: var(--accent-soft-dark);
+        --accent-contrast: var(--accent-contrast-dark);
+        --red-team: var(--red-team-dark);
+        --red-surface: var(--red-surface-dark);
+        --red-border: var(--red-border-dark);
+        --blue-team: var(--blue-team-dark);
+        --blue-surface: var(--blue-surface-dark);
+        --blue-border: var(--blue-border-dark);
+        --gold: var(--gold-dark);
+        --gold-bg: var(--gold-bg-dark);
+        --gold-border: var(--gold-border-dark);
+        --pos: var(--pos-dark);
+        --pos-bg: var(--pos-bg-dark);
+        --neg: var(--neg-dark);
+        --neg-bg: var(--neg-bg-dark);
+        --scrollbar-track: var(--scrollbar-track-dark);
+        --scrollbar-thumb: var(--scrollbar-thumb-dark);
+        --q3-0: var(--q3-0-dark);
+        --q3-1: var(--q3-1-dark);
+        --q3-2: var(--q3-2-dark);
+        --q3-3: var(--q3-3-dark);
+        --q3-4: var(--q3-4-dark);
+        --q3-5: var(--q3-5-dark);
+        --q3-6: var(--q3-6-dark);
+        --q3-7: var(--q3-7-dark);
+      }
+
+      /* Modern light-dark() dynamic tokens */
+      @supports (color: light-dark(white, black)) {
+        --bg-canvas: light-dark(var(--bg-canvas-light), var(--bg-canvas-dark));
+        --bg-surface: light-dark(var(--bg-surface-light), var(--bg-surface-dark));
+        --bg-elevated: light-dark(var(--bg-elevated-light), var(--bg-elevated-dark));
+        --bg-subtle: light-dark(var(--bg-subtle-light), var(--bg-subtle-dark));
+        --border-default: light-dark(var(--border-default-light), var(--border-default-dark));
+        --border-strong: light-dark(var(--border-strong-light), var(--border-strong-dark));
+        --text-primary: light-dark(var(--text-primary-light), var(--text-primary-dark));
+        --text-secondary: light-dark(var(--text-secondary-light), var(--text-secondary-dark));
+        --text-muted: light-dark(var(--text-muted-light), var(--text-muted-dark));
+        --accent: light-dark(var(--accent-light), var(--accent-dark));
+        --accent-hover: light-dark(var(--accent-hover-light), var(--accent-hover-dark));
+        --accent-soft: light-dark(var(--accent-soft-light), var(--accent-soft-dark));
+        --accent-contrast: light-dark(var(--accent-contrast-light), var(--accent-contrast-dark));
+        --red-team: light-dark(var(--red-team-light), var(--red-team-dark));
+        --red-surface: light-dark(var(--red-surface-light), var(--red-surface-dark));
+        --red-border: light-dark(var(--red-border-light), var(--red-border-dark));
+        --blue-team: light-dark(var(--blue-team-light), var(--blue-team-dark));
+        --blue-surface: light-dark(var(--blue-surface-light), var(--blue-surface-dark));
+        --blue-border: light-dark(var(--blue-border-light), var(--blue-border-dark));
+        --gold: light-dark(var(--gold-light), var(--gold-dark));
+        --gold-bg: light-dark(var(--gold-bg-light), var(--gold-bg-dark));
+        --gold-border: light-dark(var(--gold-border-light), var(--gold-border-dark));
+        --pos: light-dark(var(--pos-light), var(--pos-dark));
+        --pos-bg: light-dark(var(--pos-bg-light), var(--pos-bg-dark));
+        --neg: light-dark(var(--neg-light), var(--neg-dark));
+        --neg-bg: light-dark(var(--neg-bg-light), var(--neg-bg-dark));
+        --scrollbar-track: light-dark(var(--scrollbar-track-light), var(--scrollbar-track-dark));
+        --scrollbar-thumb: light-dark(var(--scrollbar-thumb-light), var(--scrollbar-thumb-dark));
+        --q3-0: light-dark(var(--q3-0-light), var(--q3-0-dark));
+        --q3-1: light-dark(var(--q3-1-light), var(--q3-1-dark));
+        --q3-2: light-dark(var(--q3-2-light), var(--q3-2-dark));
+        --q3-3: light-dark(var(--q3-3-light), var(--q3-3-dark));
+        --q3-4: light-dark(var(--q3-4-light), var(--q3-4-dark));
+        --q3-5: light-dark(var(--q3-5-light), var(--q3-5-dark));
+        --q3-6: light-dark(var(--q3-6-light), var(--q3-6-dark));
+        --q3-7: light-dark(var(--q3-7-light), var(--q3-7-dark));
+      }
+
+      /* Map <meta name="color-scheme"> overrides onto :root */
+      color-scheme: light dark;
+      &:has(> head > meta[name="color-scheme"][content="dark"]) {
+        color-scheme: dark;
+      }
+      &:has(> head > meta[name="color-scheme"][content="light"]) {
+        color-scheme: light;
+      }
+
+      accent-color: var(--accent);
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+      --radius-sm: 0.375rem;
+      --radius-md: 0.625rem;
+      --radius-lg: 0.875rem;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    @supports not (scrollbar-color: auto) {
+      ::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+      }
+    }
+
+    /* ==========================================================================
+       2. Reset & Base Typography (respect-os-text-scale: no root font-size!)
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-block-size: 100dvh;
+      background-color: var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+    }
+
+    ::selection {
+      background-color: var(--accent);
+      color: var(--accent-contrast);
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover {
+      color: var(--accent-hover);
+      text-decoration: underline;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .sr-only {
+      position: absolute !important;
+      clip-path: inset(50%) !important;
+      overflow: hidden !important;
+      inline-size: 1px !important;
+      block-size: 1px !important;
+      margin: -1px !important;
+      padding: 0 !important;
+      border: 0 !important;
+      white-space: nowrap !important;
+    }
+
+    /* Q3 Color Spans */
+    .q3-0 { color: var(--q3-0); }
+    .q3-1 { color: var(--q3-1); }
+    .q3-2 { color: var(--q3-2); }
+    .q3-3 { color: var(--q3-3); }
+    .q3-4 { color: var(--q3-4); }
+    .q3-5 { color: var(--q3-5); }
+    .q3-6 { color: var(--q3-6); }
+    .q3-7 { color: var(--q3-7); }
+
+    /* ==========================================================================
+       3. Compact Sticky Header & Responsive Navbar (navbar + noise-reduction)
+       ========================================================================== */
+    .site-header {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: 40;
+      background-color: var(--bg-surface);
+      border-block-end: 1px solid var(--border-default);
+    }
+
+    .site-header.is-measuring * {
+      transition: none !important;
+    }
+
+    .header-inner {
+      max-inline-size: 86rem;
+      margin-inline: auto;
+      padding-inline: 1rem;
+      min-block-size: 3.375rem;
+      display: flex;
+      align-items: safe center;
+      gap: 0.875rem;
+    }
+
+    .header-inner > * {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: safe center;
+      gap: 0.625rem;
+    }
+
+    .site-logo {
+      display: inline-flex;
+      align-items: safe center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text-primary);
+      text-decoration: none !important;
+      letter-spacing: -0.01em;
+    }
+
+    .logo-emblem {
+      display: inline-grid;
+      place-items: center;
+      inline-size: 1.75rem;
+      block-size: 1.75rem;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 0.8rem;
+      letter-spacing: 0.02em;
+      user-select: none;
+    }
+
+    .demo-counter-pill {
+      display: inline-flex;
+      align-items: safe center;
+      gap: 0.35rem;
+      padding-inline: 0.25rem;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .live-dot {
+      inline-size: 0.45rem;
+      block-size: 0.45rem;
+      border-radius: 50%;
+      background-color: var(--pos);
+    }
+
+    .site-nav {
+      margin-inline-start: 0.25rem;
+    }
+
+    .menu-button {
+      anchor-name: --menu-button;
+      display: inline-flex;
+      align-items: safe center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-default);
+      background-color: var(--bg-elevated);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .site-menu {
+      list-style: none;
+      margin: 0;
+      padding: 0.5rem;
+      position: fixed;
+      inset: auto;
+      inset-block-start: 3.5rem;
+      inset-block-start: anchor(--menu-button bottom);
+      inset-inline-start: 1rem;
+      inline-size: min(85dvw, 18rem);
+      max-inline-size: calc(100dvw - 2rem);
+      block-size: fit-content;
+      max-block-size: calc(100dvh - 5rem);
+      margin-block-start: 0.375rem;
+      overflow: auto;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .site-menu:not(:is(:popover-open, .\:popover-open)) {
+      display: none;
+    }
+
+    .site-menu:is(:popover-open, .\:popover-open) {
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    .site-menu a {
+      display: inline-flex;
+      align-items: safe center;
+      gap: 0.4rem;
+      inline-size: 100%;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-decoration: none;
+      position: relative;
+    }
+
+    .site-menu a:hover {
+      background-color: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+
+    .site-menu a[aria-current="page"] {
+      color: var(--accent);
+      background-color: var(--accent-soft);
+      font-weight: 600;
+    }
+
+    .site-menu a[aria-current="page"]::after {
+      content: "";
+      position: absolute;
+      inset-inline-start: 0.25rem;
+      inset-block: 0.35rem;
+      border-inline-start: 3px solid var(--accent);
+    }
+
+    /* Wide Inline Navbar State */
+    .site-header.is-wide .menu-button {
+      display: none;
+    }
+
+    .site-header.is-wide .site-menu {
+      position: static;
+      display: flex;
+      align-items: safe center;
+      gap: 0.25rem;
+      inline-size: auto;
+      max-inline-size: none;
+      block-size: auto;
+      max-block-size: none;
+      overflow: visible;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .site-header.is-wide .site-menu::backdrop {
+      display: none;
+    }
+
+    .site-header.is-wide .site-menu a {
+      inline-size: auto;
+      padding: 0.45rem 0.75rem;
+    }
+
+    .site-header.is-wide .site-menu a[aria-current="page"]::after {
+      inset: auto 0.5rem 0.1rem;
+      border-inline-start: 0;
+      border-block-end: 2.5px solid var(--accent);
+    }
+
+    .header-actions {
+      margin-inline-start: auto;
+      display: flex;
+      align-items: safe center;
+      gap: 0.5rem;
+    }
+
+    .icon-btn, .ghost-btn {
+      display: inline-flex;
+      align-items: safe center;
+      justify-content: center;
+      gap: 0.35rem;
+      min-block-size: 2.05rem;
+      min-inline-size: 2.05rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)), var(--bg-elevated);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 1px 2px rgba(0, 0, 0, 0.24);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none !important;
+      transition: border-color 0.12s ease, background-color 0.12s ease, transform 0.08s ease;
+    }
+
+    .icon-btn:hover, .ghost-btn:hover {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+      color: var(--accent-hover);
+    }
+
+    .icon-btn:active, .ghost-btn:active {
+      transform: translateY(1px);
+    }
+
+    .ghost-btn[aria-expanded="true"] {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    /* Two-state Theme Toggle Icon Visibility (CSS-driven, zero FOUC) */
+    .theme-opt-dark { display: inline-flex; align-items: center; gap: 0.3rem; }
+    .theme-opt-light { display: none; align-items: center; gap: 0.3rem; }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not(:has(> head > meta[name="color-scheme"][content="light"])) .theme-opt-dark {
+        display: none;
+      }
+      :root:not(:has(> head > meta[name="color-scheme"][content="light"])) .theme-opt-light {
+        display: inline-flex;
+      }
+    }
+    :root:has(> head > meta[name="color-scheme"][content="dark"]) .theme-opt-dark {
+      display: none;
+    }
+    :root:has(> head > meta[name="color-scheme"][content="dark"]) .theme-opt-light {
+      display: inline-flex;
+    }
+
+    /* ==========================================================================
+       4. Main Workspace Shell & Filter Bar
+       ========================================================================== */
+    .app-main {
+      flex: 1 1 auto;
+      inline-size: 100%;
+      max-inline-size: 86rem;
+      margin-inline: auto;
+      padding: 1.125rem 1rem 5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .filter-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 0.875rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .filter-form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.75rem;
+    }
+
+    .field-group {
+      position: relative;
+      flex: 1 1 11rem;
+      min-inline-size: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .field-group.field-compact {
+      flex: 0 1 10.5rem;
+    }
+
+    .field-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+    }
+
+    .text-input, .select-input {
+      inline-size: 100%;
+      min-block-size: 2.25rem;
+      padding: 0.375rem 0.65rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-default);
+      background-color: var(--bg-subtle);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 0.875rem;
+    }
+
+    .text-input::placeholder {
+      color: var(--text-muted);
+      opacity: 0.8;
+    }
+
+    .text-input:hover, .select-input:hover {
+      border-color: var(--border-strong);
+    }
+
+    input:not([type="range"]):user-invalid {
+      border-color: var(--neg);
+    }
+
+    /* Brand-consistent Checkbox + Fallback */
+    .check-label {
+      display: inline-flex;
+      align-items: safe center;
+      gap: 0.45rem;
+      min-block-size: 2.25rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-default);
+      background-color: var(--bg-subtle);
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+    }
+    .check-label:has(:checked) {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+      color: var(--text-primary);
+    }
+    .check-label input[type="checkbox"] {
+      inline-size: 1rem;
+      block-size: 1rem;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    @supports not (accent-color: var(--accent)) {
+      .check-label input[type="checkbox"].visually-hidden-fallback {
+        position: absolute !important;
+        clip-path: inset(50%) !important;
+        overflow: hidden !important;
+        width: 1px !important;
+        height: 1px !important;
+        margin: -1px !important;
+        padding: 0 !important;
+        border: 0 !important;
+        white-space: nowrap !important;
+      }
+      .check-label {
+        position: relative;
+        padding-inline-start: 2rem;
+      }
+      .check-label input[type="checkbox"] + span::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: 0.6rem;
+        inset-block-start: 50%;
+        transform: translateY(-50%);
+        inline-size: 1rem;
+        block-size: 1rem;
+        border: 2px solid var(--border-strong);
+        background: var(--bg-surface);
+        border-radius: 3px;
+      }
+      .check-label input[type="checkbox"]:focus-visible + span::before {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .check-label input[type="checkbox"]:checked + span::before {
+        background-color: var(--accent);
+        border-color: var(--accent);
+      }
+      .check-label input[type="checkbox"]:checked + span::after {
+        content: "✓";
+        position: absolute;
+        inset-inline-start: 0.78rem;
+        inset-block-start: 50%;
+        transform: translateY(-50%);
+        color: var(--accent-contrast);
+        font-weight: 700;
+        font-size: 0.75rem;
+      }
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: safe center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-block-size: 2.25rem;
+      padding: 0.375rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid #60a5fa;
+      background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 1px 3px rgba(0, 0, 0, 0.35);
+      color: #ffffff;
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter 0.12s ease, transform 0.08s ease;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: safe center;
+      justify-content: center;
+      gap: 0.35rem;
+      min-block-size: 2.25rem;
+      padding: 0.375rem 0.8rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)), var(--bg-elevated);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 1px 2px rgba(0, 0, 0, 0.24);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none !important;
+      transition: border-color 0.12s ease, background-color 0.12s ease, transform 0.08s ease;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+    }
+
+    .btn-secondary:active {
+      transform: translateY(1px);
+    }
+
+    /* Autocomplete Combobox Dropdown */
+    .ac-dropdown {
+      position: absolute;
+      inset-block-start: calc(100% + 0.25rem);
+      inset-inline: 0;
+      z-index: 60;
+      max-block-size: 17rem;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+      padding: 0.25rem;
+      margin: 0;
+      list-style: none;
+    }
+
+    .ac-dropdown[hidden] {
+      display: none;
+    }
+
+    .ac-option {
+      display: flex;
+      align-items: safe center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.4rem 0.6rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .ac-option:hover, .ac-option[aria-selected="true"] {
+      background-color: var(--accent-soft);
+    }
+
+    .ac-raw {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      overflow: clip;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-inline-size: 9rem;
+    }
+
+    .ac-map-thumb {
+      inline-size: 2.25rem;
+      block-size: 1.5rem;
+      object-fit: cover;
+      border-radius: 3px;
+      border: 1px solid var(--border-default);
+      flex-shrink: 0;
+    }
+
+    /* Active Filter Chips & Q3 Variant Disambiguation Bar */
+    .filter-assist-row {
+      display: flex;
+      flex-wrap: wrap;
+      flex-wrap: balance;
+      align-items: safe center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+    }
+
+    .filter-assist-row[hidden] {
+      display: none;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: safe center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-default);
+      background-color: var(--bg-elevated);
+      color: var(--text-secondary);
+      font: inherit;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .chip:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .chip.is-active {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* ==========================================================================
+       5. Section Toolbar & Pagination
+       ========================================================================== */
+    .feed-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: safe center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .feed-title-wrap {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .feed-heading {
+      margin: 0;
+      font-size: clamp(1.1rem, 0.95rem + 0.5vw, 1.35rem);
+      font-weight: 700;
+    }
+
+    .feed-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pagination-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: safe center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+
+    .page-btn {
+      min-block-size: 2rem;
+      min-inline-size: 2.25rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-default);
+      background-color: var(--bg-surface);
+      color: var(--text-secondary);
+      font: inherit;
+      font-size: 0.8125rem;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .page-btn[aria-current="page"] {
+      border-color: var(--accent);
+      background-color: var(--accent);
+      color: var(--accent-contrast);
+      font-weight: 700;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* ==========================================================================
+       6. Competitive Match Cards (Replaces 26-column nested rowspan table)
+       ========================================================================== */
+    .card-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .match-card {
+      container: match-card / inline-size;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      overflow: clip;
+      transition: border-color 0.15s ease;
+    }
+
+    .match-card.is-upset {
+      border-inline-start: 3px solid var(--gold);
+    }
+
+    .match-card:hover {
+      border-color: var(--border-strong);
+    }
+    .match-card.is-upset:hover {
+      border-inline-start-color: var(--gold);
+    }
+
+    .match-banner {
+      position: relative;
+      padding: 0.85rem 1rem;
+      background-color: var(--bg-elevated);
+      border-block-end: 1px solid var(--border-default);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 0.875rem;
+    }
+
+    @container match-card (inline-size < 54rem) {
+      .match-banner {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
+    }
+
+    .match-map-cluster {
+      display: flex;
+      align-items: safe center;
+      gap: 0.85rem;
+      min-inline-size: 0;
+    }
+
+    .map-thumb-box {
+      position: relative;
+      inline-size: 4.75rem;
+      aspect-ratio: 3 / 2;
+      border-radius: var(--radius-sm);
+      overflow: clip;
+      border: 1px solid var(--border-default);
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 60%, #1d4ed8 100%);
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .map-thumb-box img {
+      display: block;
+      inline-size: 100%;
+      block-size: 100%;
+      object-fit: cover;
+    }
+
+    .map-fallback-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      user-select: none;
+    }
+
+    .match-info-col {
+      min-inline-size: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.18rem;
+    }
+
+    .match-title-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    .map-filter-btn {
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: start;
+      text-decoration: underline transparent;
+      text-underline-offset: 3px;
+      transition: color 0.12s ease, text-decoration-color 0.12s ease;
+    }
+
+    .map-filter-btn:hover {
+      color: var(--accent);
+      text-decoration-color: currentColor;
+    }
+
+    .meta-inline-text {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .match-submeta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: safe center;
+      gap: 0.45rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .server-btn {
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--text-secondary);
+      font: inherit;
+      cursor: pointer;
+      max-inline-size: 20rem;
+      overflow: clip;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-decoration: underline dotted var(--border-strong);
+      text-underline-offset: 3px;
+    }
+    .server-btn:hover {
+      color: var(--accent);
+      text-decoration-style: solid;
+      text-decoration-color: currentColor;
+    }
+
+    /* Flat Non-Interactive Scoreboard & Pre-Match Win Probability Centerpiece */
+    .score-centerpiece {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      min-inline-size: 11.5rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .score-readout {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.55rem;
+      line-height: 1;
+    }
+
+    .score-team-lbl {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .score-team-lbl.is-red { color: var(--red-team); }
+    .score-team-lbl.is-blue { color: var(--blue-team); }
+
+    .score-num {
+      font-family: var(--font-mono);
+      font-size: 1.45rem;
+      font-weight: 800;
+      min-inline-size: 1.5ch;
+      text-align: center;
+    }
+    .score-num.is-red { color: var(--red-team); }
+    .score-num.is-blue { color: var(--blue-team); }
+    .score-num.is-loser { opacity: 0.68; font-weight: 700; }
+
+    .score-sep {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .odds-bar-track {
+      inline-size: 100%;
+      block-size: 4px;
+      border-radius: 999px;
+      background-color: var(--blue-team);
+      overflow: clip;
+      display: flex;
+    }
+
+    .odds-bar-red {
+      block-size: 100%;
+      background-color: var(--red-team);
+      border-inline-end: 1.5px solid var(--bg-elevated);
+    }
+
+    .odds-verdict {
+      font-size: 0.72rem;
+      line-height: 1.2;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.28rem;
+      white-space: nowrap;
+    }
+
+    .odds-verdict.is-upset {
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    .odds-verdict.is-major-upset {
+      color: var(--gold);
+      font-weight: 800;
+    }
+
+    /* Match Action Cluster */
+    .match-actions {
+      justify-self: end;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: safe center;
+      justify-content: flex-end;
+      gap: 0.4rem;
+    }
+
+    /* Demo Download + PiP Play Button Pair (jk-pip-player compatible) */
+    .demo-action-pair {
+      display: inline-flex;
+      align-items: safe center;
+      justify-content: flex-end;
+      gap: 0.25rem;
+    }
+
+    .dl-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-inline-size: 1.8rem;
+      min-block-size: 1.8rem;
+      padding: 0.2rem 0.42rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)), var(--bg-elevated);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.22);
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      text-decoration: none !important;
+      transition: border-color 0.12s ease, color 0.12s ease, background-color 0.12s ease, transform 0.08s ease;
+    }
+    .dl-link:hover {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+      color: var(--accent-hover);
+    }
+    .dl-link:active {
+      transform: translateY(1px);
+    }
+
+    /* Tactile Play Buttons (.jk-play-btn) */
+    .match-card .jk-play-btn,
+    .demo-card .jk-play-btn,
+    .profile-view .jk-play-btn {
+      margin-inline-start: 0 !important;
+      min-block-size: 1.8rem;
+      padding: 0.22rem 0.65rem !important;
+      font-size: 0.76rem !important;
+      font-weight: 700 !important;
+      border-radius: var(--radius-sm) !important;
+      gap: 0.3rem !important;
+      background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%) !important;
+      border: 1px solid #60a5fa !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 1px 2px rgba(0, 0, 0, 0.32) !important;
+    }
+
+    .match-card .jk-play-btn span,
+    .demo-card .jk-play-btn span,
+    .profile-view .jk-play-btn span {
+      text-box: trim-both cap alphabetic;
+    }
+
+    .match-card .jk-play-btn:hover,
+    .demo-card .jk-play-btn:hover,
+    .profile-view .jk-play-btn:hover {
+      filter: brightness(1.12);
+    }
+
+    .jk-play-btn.is-match-watch {
+      min-block-size: 2.05rem !important;
+      padding: 0.3rem 0.85rem !important;
+      font-size: 0.82rem !important;
+    }
+
+    .jk-play-btn.is-inferred {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)), var(--bg-elevated) !important;
+      color: var(--text-secondary) !important;
+      border: 1px dashed var(--border-strong) !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+    .jk-play-btn.is-inferred:hover {
+      border-color: var(--accent) !important;
+      color: var(--accent-hover) !important;
+      background: var(--accent-soft) !important;
+    }
+
+    .jk-play-btn.is-clip {
+      background: linear-gradient(180deg, rgba(245, 183, 65, 0.24), rgba(245, 183, 65, 0.12)) !important;
+      color: var(--gold) !important;
+      border: 1px solid var(--gold-border) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 2px rgba(0, 0, 0, 0.26) !important;
+    }
+
+    /* Highlights Strip inside Match Card */
+    .highlights-strip {
+      padding: 0.5rem 1rem;
+      background-color: var(--bg-subtle);
+      border-block-end: 1px solid var(--border-default);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: safe center;
+      gap: 0.45rem;
+    }
+
+    .highlights-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin-inline-end: 0.2rem;
+    }
+
+    /* 2-Column Red vs Blue Roster Grid with Strict Tabular Number Columns */
+    .teams-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    @container match-card (inline-size < 66rem) {
+      .teams-grid {
+        grid-template-columns: 1fr;
+      }
+      .team-col.is-red {
+        border-inline-end: 0 !important;
+        border-block-end: 1px solid var(--border-default);
+      }
+    }
+
+    .team-col.is-red {
+      border-inline-end: 1px solid var(--border-default);
+    }
+
+    /* Shared Column Template for Header + Player Rows so EVERY stat lines up! */
+    .roster-grid-ctf {
+      display: grid;
+      grid-template-columns:
+        minmax(6.5rem, 1fr)
+        2.75rem  /* Elo */
+        2.2rem   /* Delta */
+        1.75rem  /* Cap */
+        1.85rem  /* Ret */
+        2.95rem  /* Score */
+        3.35rem  /* Dmg */
+        2.15rem  /* Min */
+        2.15rem  /* Ping */
+        5.55rem; /* Demo Actions */
+      align-items: center;
+      column-gap: 0.4rem;
+    }
+
+    .roster-grid-basic {
+      display: grid;
+      grid-template-columns:
+        minmax(7rem, 1fr)
+        2.85rem  /* Elo */
+        2.25rem  /* Delta */
+        3.2rem   /* Score */
+        2.3rem   /* Min */
+        2.25rem  /* Ping */
+        5.55rem; /* Demo Actions */
+      align-items: center;
+      column-gap: 0.45rem;
+    }
+
+    @container match-card (inline-size < 38rem) {
+      .roster-grid-ctf {
+        grid-template-columns:
+          minmax(5.5rem, 1fr)
+          2.7rem   /* Elo */
+          2.95rem  /* Score */
+          3.25rem  /* Dmg */
+          2.1rem   /* Ping */
+          5.4rem;  /* Demo */
+      }
+      .roster-grid-ctf .col-opt-sm {
+        display: none;
+      }
+      .roster-grid-basic {
+        grid-template-columns:
+          minmax(5.5rem, 1fr)
+          2.8rem
+          3.1rem
+          2.2rem
+          5.4rem;
+      }
+      .roster-grid-basic .col-opt-sm {
+        display: none;
+      }
+    }
+
+    .team-col-header {
+      padding: 0.42rem 0.75rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-block-end: 1px solid var(--border-default);
+    }
+
+    .team-col.is-red .team-col-header {
+      background-color: var(--red-surface);
+      color: var(--red-team);
+    }
+
+    .team-col.is-blue .team-col-header {
+      background-color: var(--blue-surface);
+      color: var(--blue-team);
+    }
+
+    .hdr-stat {
+      text-align: end;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.64rem;
+      letter-spacing: 0.03em;
+      text-box: trim-both cap alphabetic;
+    }
+
+    .roster-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .roster-row {
+      padding: 0.42rem 0.75rem;
+      border-block-end: 1px solid var(--border-default);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .roster-row:last-child {
+      border-block-end: 0;
+    }
+
+    .roster-row:hover {
+      background-color: rgba(148, 163, 184, 0.04);
+    }
+
+    .roster-row.is-disconnected {
+      opacity: 0.72;
+      background-color: var(--bg-subtle);
+    }
+
+    .player-ident {
+      min-inline-size: 0;
+      display: flex;
+      align-items: baseline;
+      gap: 0.35rem;
+      overflow: clip;
+    }
+
+    .player-name-link {
+      font-weight: 600;
+      font-size: 0.86rem;
+      color: var(--text-primary);
+      text-decoration: none;
+      overflow: clip;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    a.player-name-link:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    .left-note {
+      font-size: 0.7rem;
+      font-style: italic;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .cell-num {
+      text-align: end;
+      font-family: var(--font-mono);
+      font-size: 0.77rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .cell-num.is-primary {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    .cell-num.is-muted-zero {
+      color: var(--text-muted);
+      opacity: 0.42;
+    }
+
+    .cell-num.is-highlight {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .elo-delta.is-pos {
+      color: var(--pos);
+      font-weight: 700;
+    }
+    .elo-delta.is-neg {
+      color: var(--neg);
+      font-weight: 700;
+    }
+
+    /* Extra Aux Footer (Spectators / Free Players — Unboxed Inline List) */
+    .match-aux-bar {
+      padding: 0.45rem 0.875rem;
+      background-color: var(--bg-subtle);
+      border-block-start: 1px solid var(--border-default);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: safe center;
+      gap: 0.85rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .aux-item {
+      display: inline-flex;
+      align-items: safe center;
+      gap: 0.4rem;
+      color: var(--text-secondary);
+    }
+
+    /* ==========================================================================
+       7. Accessible Tabs & Responsive Data Tables (tabs + responsive-table)
+       ========================================================================== */
+    .tablist-scroller {
+      display: flex;
+      overflow-x: auto;
+      border-block-end: 1px solid var(--border-default);
+      gap: 0.25rem;
+      --fade-size: 2.5rem;
+      --fade-dir: right;
+      --fade-start-pos: 0;
+      --fade-end-pos: 100%;
+      mask:
+        linear-gradient(black, black) no-clip subtract,
+        linear-gradient(to var(--fade-dir), black, transparent) var(--fade-start-pos) 0 / var(--fade-start) 100% no-repeat no-clip,
+        linear-gradient(to var(--fade-dir), transparent, black) var(--fade-end-pos) 0 / var(--fade-end) 100% no-repeat no-clip;
+      animation: reveal-fade-start linear both, hide-fade-end linear both;
+      animation-timeline: scroll(self inline);
+      animation-range: 0 var(--fade-size), calc(100% - var(--fade-size)) 100%;
+    }
+
+    @keyframes reveal-fade-start {
+      to { --fade-start: var(--fade-size); }
+    }
+    @keyframes hide-fade-end {
+      from { --fade-end: var(--fade-size); }
+    }
+
+    .tablist-scroller [role="tab"],
+    .tablist-scroller button {
+      flex: none;
+      position: relative;
+      padding: 0.55rem 0.9rem;
+      border: 0;
+      background: transparent;
+      color: var(--text-secondary);
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .tablist-scroller [aria-selected="true"] {
+      color: var(--accent);
+    }
+
+    .tablist-scroller [aria-selected="true"]::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      border-block-end: 3px solid var(--accent);
+    }
+
+    /* Styles live on child wrapper inside tabpanel so hidden="until-found" renders no empty strip */
+    .tab-panel-inner {
+      padding-block-start: 0.75rem;
+    }
+
+    /* Responsive Table Wrapper */
+    .table-wrapper {
+      overflow: auto;
+      max-inline-size: 100%;
+      max-block-size: min(36rem, 78dvh);
+      container-type: inline-size;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-surface);
+      scrollbar-gutter: stable;
+    }
+
+    .data-table {
+      inline-size: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.82rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .data-table caption {
+      padding: 0.6rem 0.875rem;
+      text-align: start;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      background-color: var(--bg-elevated);
+      border-block-end: 1px solid var(--border-default);
+    }
+
+    .data-table thead {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: 2;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 0.5rem 0.7rem;
+      border-block-end: 1px solid var(--border-default);
+      text-align: start;
+      white-space: nowrap;
+    }
+
+    .data-table thead th {
+      background-color: var(--bg-elevated);
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .data-table tbody th {
+      position: sticky;
+      inset-inline-start: 0;
+      z-index: 1;
+      background-color: var(--bg-surface);
+      font-weight: 600;
+      border-inline-end: 1px solid var(--border-default);
+    }
+
+    .data-table tbody tr:hover td,
+    .data-table tbody tr:hover th {
+      background-color: var(--bg-elevated);
+    }
+
+    .num-col {
+      text-align: end !important;
+      font-family: var(--font-mono);
+    }
+
+    @container (width < 40rem) {
+      .data-table.is-stackable,
+      .data-table.is-stackable thead,
+      .data-table.is-stackable tbody,
+      .data-table.is-stackable tr,
+      .data-table.is-stackable th,
+      .data-table.is-stackable td {
+        display: block;
+        white-space: normal;
+      }
+      .data-table.is-stackable thead {
+        display: none;
+      }
+      .data-table.is-stackable tbody tr {
+        margin: 0.65rem;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-md);
+        overflow: clip;
+      }
+      .data-table.is-stackable tbody th {
+        position: sticky;
+        inset-block-start: 0;
+        background-color: var(--bg-elevated);
+        border-inline-end: 0;
+      }
+      .data-table.is-stackable td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        text-align: end !important;
+      }
+      .data-table.is-stackable td:nth-child(2)::before { content: var(--label-2) ": "; color: var(--text-muted); font-family: var(--font-sans); }
+      .data-table.is-stackable td:nth-child(3)::before { content: var(--label-3) ": "; color: var(--text-muted); font-family: var(--font-sans); }
+      .data-table.is-stackable td:nth-child(4)::before { content: var(--label-4) ": "; color: var(--text-muted); font-family: var(--font-sans); }
+      .data-table.is-stackable td:nth-child(5)::before { content: var(--label-5) ": "; color: var(--text-muted); font-family: var(--font-sans); }
+      .data-table.is-stackable td:nth-child(6)::before { content: var(--label-6) ": "; color: var(--text-muted); font-family: var(--font-sans); }
+    }
+
+    /* ==========================================================================
+       8. CTF Analytics Drawer inside Match Card
+       ========================================================================== */
+    .ctf-analytics-pane {
+      padding: 0.875rem 1rem;
+      background-color: var(--bg-subtle);
+      border-block-start: 1px solid var(--border-default);
+    }
+
+    .ctf-analytics-pane[hidden] {
+      display: none;
+    }
+
+    /* ==========================================================================
+       9. Individual Demos View & Player Profile View
+       ========================================================================== */
+    .demo-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 0.875rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .demo-card-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: safe center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .map-segments-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+      gap: 0.6rem;
+    }
+
+    .map-segment-box {
+      padding: 0.6rem 0.75rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-default);
+      background-color: var(--bg-subtle);
+      display: flex;
+      align-items: safe center;
+      justify-content: space-between;
+      gap: 0.6rem;
+    }
+
+    /* Player Profile Hero & Elo Chart */
+    .profile-hero {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: safe center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .stat-kpis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+      gap: 0.75rem;
+    }
+
+    .stat-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1rem;
+    }
+
+    .stat-card-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .stat-card-value {
+      font-size: 1.45rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      margin-block-start: 0.15rem;
+    }
+
+    .chart-panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .chart-canvas-wrap {
+      position: relative;
+      inline-size: 100%;
+      aspect-ratio: 16 / 5;
+      min-block-size: 13rem;
+    }
+
+    .chart-canvas-wrap canvas {
+      display: block;
+      inline-size: 100%;
+      block-size: 100%;
+      cursor: crosshair;
+    }
+
+    .chart-tooltip {
+      position: absolute;
+      pointer-events: none;
+      padding: 0.4rem 0.65rem;
+      border-radius: var(--radius-sm);
+      background-color: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      font-size: 0.78rem;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      z-index: 10;
+    }
+
+    /* ==========================================================================
+       10. Native Light-Dismiss Modal Dialog (dialog + light-dismiss-a-dialog)
+       ========================================================================== */
+    dialog:modal {
+      overscroll-behavior: contain;
+      max-inline-size: min(34rem, calc(100dvw - 2rem));
+      inline-size: 100%;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      background-color: var(--bg-surface);
+      color: var(--text-primary);
+      padding: 1.25rem;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5);
+    }
+
+    dialog[open] {
+      display: flex;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    dialog::backdrop {
+      overflow: hidden;
+      overscroll-behavior: contain;
+      background-color: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(2px);
+    }
+
+    /* Loading Skeletons & Empty States */
+    .skeleton-card {
+      block-size: 11rem;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-default);
+      background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-elevated) 50%, var(--bg-surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+
+    @keyframes shimmer {
+      from { background-position: 200% 0; }
+      to { background-position: -200% 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .skeleton-card {
+        animation: none;
+      }
+    }
+
+    .empty-box {
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      border-radius: var(--radius-lg);
+      border: 1px dashed var(--border-strong);
+      background-color: var(--bg-surface);
+      color: var(--text-secondary);
+    }
+
+    /* Forced Colors Accessibility Support */
+    @media (forced-colors: active) {
+      .match-card, .demo-card, .filter-card {
+        border: 1px solid CanvasText;
+      }
+      .site-menu a[aria-current="page"]::after,
+      .tablist-scroller [aria-selected="true"]::after {
+        border-color: Highlight;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Compact Sticky Site Header -->
+  <header class="site-header is-wide" id="site-header">
+    <div class="header-inner" id="header-inner">
+      <div class="brand-group">
+        <a class="site-logo" href="#view=matches" data-nav="matches">
+          <span class="logo-emblem" aria-hidden="true">JK</span>
+          <span>JKA Demo Archive</span>
+        </a>
+        <span class="demo-counter-pill" title="Total archived demo recordings">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span id="numdemos-pill">Loading…</span>
+        </span>
+      </div>
+
+      <nav class="site-nav" aria-label="Primary">
+        <button
+          class="menu-button"
+          id="nav-menu-btn"
+          type="button"
+          popovertarget="site-menu"
+          popovertargetaction="toggle"
+          aria-controls="site-menu"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M2 3.75h12v1.5H2zm0 3.5h12v1.5H2zm0 3.5h12v1.5H2z"/>
+          </svg>
+          <span>Browse</span>
+        </button>
+
+        <ul id="site-menu" class="site-menu">
+          <li><a href="#view=matches" data-view-link="matches" aria-current="page">Competitive Matches</a></li>
+          <li><a href="#view=demos" data-view-link="demos">All Demos</a></li>
+          <li><a href="#view=players" data-view-link="players">Players &amp; Ratings</a></li>
+          <li><a href="#view=bundle" data-view-link="bundle">Bulk Download</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="icon-btn" id="btn-help" title="Archive guide &amp; shortcuts">
+          <span aria-hidden="true">?</span>
+          <span class="sr-only">Archive guide and keyboard shortcuts</span>
+        </button>
+        <a class="ghost-btn" id="classic-ui-link" href="match.html?classic=1" title="Switch to classic 2017 table view">Classic UI</a>
+        <button type="button" class="icon-btn" id="btn-theme-toggle" title="Toggle light or dark appearance">
+          <span class="theme-opt-dark">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
+            </svg>
+            <span class="sr-only">Switch to dark theme</span>
+          </span>
+          <span class="theme-opt-light">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8z"/>
+            </svg>
+            <span class="sr-only">Switch to light theme</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Landmark -->
+  <main class="app-main" id="app-main">
+    <!-- Shared Search & Filter Bar (Matches & Demos) -->
+    <section class="filter-card" id="archive-filter-section" aria-label="Search filters">
+      <form class="filter-form" id="archive-search-form" autocomplete="off">
+        <div class="field-group">
+          <label class="field-label" for="f-player">Player Name</label>
+          <input
+            class="text-input"
+            id="f-player"
+            name="player"
+            type="text"
+            placeholder="e.g. best, endy, padawan…"
+            aria-autocomplete="list"
+            aria-expanded="false"
+            aria-controls="ac-player"
+          />
+          <ul class="ac-dropdown" id="ac-player" role="listbox" hidden></ul>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="f-map">Map</label>
+          <input
+            class="text-input"
+            id="f-map"
+            name="map"
+            type="text"
+            placeholder="e.g. mp/ctf_kejim, ctf_bespin…"
+            aria-autocomplete="list"
+            aria-expanded="false"
+            aria-controls="ac-map"
+          />
+          <ul class="ac-dropdown" id="ac-map" role="listbox" hidden></ul>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="f-server">Server</label>
+          <input
+            class="text-input"
+            id="f-server"
+            name="server"
+            type="text"
+            placeholder="e.g. Refresh, pug…"
+            aria-autocomplete="list"
+            aria-expanded="false"
+            aria-controls="ac-server"
+          />
+          <ul class="ac-dropdown" id="ac-server" role="listbox" hidden></ul>
+        </div>
+
+        <div class="field-group field-compact">
+          <label class="field-label" for="f-before">Before Date</label>
+          <input class="text-input" id="f-before" name="before" type="date" />
+        </div>
+
+        <label class="check-label" for="f-match">
+          <input type="checkbox" id="f-match" name="match" class="visually-hidden-fallback" checked />
+          <span>Competitive Match</span>
+        </label>
+
+        <div style="display: flex; gap: 0.4rem;">
+          <button type="submit" class="btn-primary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+            </svg>
+            <span>Search</span>
+          </button>
+          <button type="button" class="btn-secondary" id="btn-reset-filters">Reset</button>
+        </div>
+      </form>
+
+      <!-- Smart Q3 Color-Code Disambiguation & Quick Map Chips -->
+      <div class="filter-assist-row" id="q3-variants-row" hidden></div>
+    </section>
+
+    <!-- Dynamic View Container -->
+    <div id="view-container">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card" style="margin-block-start: 1rem;"></div>
+    </div>
+  </main>
+
+  <!-- Light-Dismiss Help & Legend Modal Dialog -->
+  <dialog id="help-dialog" closedby="any" aria-labelledby="help-dialog-title">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+      <h2 id="help-dialog-title" style="margin: 0; font-size: 1.15rem;">JKA Demo Archive — Modern Guide</h2>
+      <form method="dialog">
+        <button type="submit" class="icon-btn" aria-label="Close guide">✕</button>
+      </form>
+    </div>
+    <div style="font-size: 0.9rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.65rem;">
+      <p style="margin: 0;">
+        <strong>Instant In-Browser Playback:</strong> Click any <strong>Play</strong>, <strong>Watch Match</strong>, <strong>POV</strong>, or <strong>Nice Shot!</strong> button to stream the demo directly in the WebAssembly OpenJK/jaMME Picture-in-Picture player—complete with 1st/3rd-person camera toggle, slow-motion, and MP4 video clip export.
+      </p>
+      <p style="margin: 0;">
+        <strong>Recorded vs. Inferred POVs:</strong> Solid <strong>POV</strong> buttons stream a player's own client recording. Dashed <strong>Inferred</strong> buttons reconstruct that player's perspective from other players' demos in the same match and may omit out-of-sight segments.
+      </p>
+      <p style="margin: 0;">
+        <strong>Smart Q3 Color Search:</strong> Jedi Academy names and servers often embed color codes like <code>^7best</code>. Start typing plain text in any filter box to match across color codes automatically, or click the suggested color-code chips below the search bar.
+      </p>
+      <p style="margin: 0;">
+        <strong>Keyboard Shortcut:</strong> Press <kbd>/</kbd> anywhere outside an input to jump straight to the player search box.
+      </p>
+    </div>
+    <form method="dialog" style="display: flex; justify-content: flex-end;">
+      <button type="submit" class="btn-primary" autofocus>Got it</button>
+    </form>
+  </dialog>
+
+  <!-- WebAssembly PiP Demo Player -->
+  <script src="/jkplayer/jk-pip-player.js?v=20261113a"></script>
+
+  <!-- Modern Archive Application Logic -->
+  <script type="module">
+    /* Conditional Polyfills per modern-web-guidance */
+    if (!Object.hasOwn(HTMLElement.prototype, "popover")) {
+      import("https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js").catch(() => {});
+    }
+    if (!Object.hasOwn(HTMLElement.prototype, "focusGroup")) {
+      import("https://esm.sh/@microsoft/focusgroup-polyfill")
+        .then((m) => m.polyfill && m.polyfill())
+        .catch(() => {});
+    }
+
+    /* Fallback for <dialog closedby="any"> on browsers without native closedBy */
+    const helpDialog = document.getElementById("help-dialog");
+    if (helpDialog && !("closedBy" in HTMLDialogElement.prototype)) {
+      const isOutside = (e, dlg) => {
+        const r = dlg.getBoundingClientRect();
+        return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+      };
+      let pressedOutside = false;
+      helpDialog.addEventListener("pointerdown", (e) => {
+        pressedOutside = e.target === helpDialog && isOutside(e, helpDialog);
+      });
+      helpDialog.addEventListener("pointerup", (e) => {
+        if (pressedOutside && e.target === helpDialog && isOutside(e, helpDialog)) {
+          helpDialog.close();
+        }
+        pressedOutside = false;
+      });
+    }
+    document.getElementById("btn-help")?.addEventListener("click", () => {
+      helpDialog?.showModal();
+    });
+
+    /* ========================================================================
+       1. Responsive Header Measurement (navbar guide)
+       ======================================================================== */
+    const siteHeader = document.getElementById("site-header");
+    const headerInner = document.getElementById("header-inner");
+    const siteMenu = document.getElementById("site-menu");
+    let lastCollapsedWidth = 0;
+
+    function syncNavbarLayout(forceMeasure = false) {
+      if (!siteHeader || !headerInner || !siteMenu) return;
+      const currentlyWide = siteHeader.classList.contains("is-wide");
+      const currentW = headerInner.clientWidth;
+      if (!currentlyWide && !forceMeasure && currentW <= lastCollapsedWidth) {
+        return;
+      }
+
+      const wasOpen = !currentlyWide && siteMenu.matches(":is(:popover-open, .\\:popover-open)");
+      siteHeader.classList.add("is-measuring", "is-wide");
+      siteMenu.removeAttribute("popover");
+
+      const fitsInline = headerInner.scrollWidth <= headerInner.clientWidth;
+      if (fitsInline) {
+        lastCollapsedWidth = 0;
+      } else {
+        lastCollapsedWidth = currentW;
+        siteHeader.classList.remove("is-wide");
+        siteMenu.setAttribute("popover", "auto");
+        if (wasOpen && typeof siteMenu.showPopover === "function") {
+          try { siteMenu.showPopover(); } catch (_) {}
+        }
+      }
+      requestAnimationFrame(() => siteHeader.classList.remove("is-measuring"));
+    }
+
+    if (typeof ResizeObserver === "function") {
+      const ro = new ResizeObserver(() => syncNavbarLayout(false));
+      if (siteHeader) ro.observe(siteHeader);
+    }
+    syncNavbarLayout(true);
+
+    /* ========================================================================
+       2. Two-State Comfort Theme Toggle (dark-mode-toggle guide)
+       ======================================================================== */
+    const schemeMeta = document.querySelector('meta[name="color-scheme"]');
+    const sysDarkMql = window.matchMedia("(prefers-color-scheme: dark)");
+
+    function getRenderedScheme() {
+      const content = schemeMeta?.content || "light dark";
+      if (content === "dark" || content === "light") return content;
+      return sysDarkMql.matches ? "dark" : "light";
+    }
+
+    document.getElementById("btn-theme-toggle")?.addEventListener("click", () => {
+      const current = getRenderedScheme();
+      const target = current === "dark" ? "light" : "dark";
+      const systemNow = sysDarkMql.matches ? "dark" : "light";
+
+      if (target === systemNow) {
+        try { localStorage.removeItem("color-scheme"); } catch (_) {}
+        if (schemeMeta) schemeMeta.content = "light dark";
+      } else {
+        try { localStorage.setItem("color-scheme", target); } catch (_) {}
+        if (schemeMeta) schemeMeta.content = target;
+      }
+      redrawActiveChartIfAny();
+    });
+
+    window.addEventListener("storage", (e) => {
+      if (e.key === "color-scheme" && schemeMeta) {
+        schemeMeta.content = e.newValue ?? "light dark";
+        redrawActiveChartIfAny();
+      }
+    });
+    sysDarkMql.addEventListener("change", () => redrawActiveChartIfAny());
+
+    /* ========================================================================
+       3. Known Map Levelshots (Zero-404 Resolver) & Q3 String Utilities
+       ======================================================================== */
+    const KNOWN_LEVELSHOTS = new Set([
+      "ctf_bespin","ctf_coruscant","ctf_firstorder","ctf_ns_streets","ctf_ruins","ctf_tribute","ctf_yavin",
+      "mpctf1","mpctf2","mpctf3","mpctf3_pro","mpctf4","mpctf5","mpctf_aeten","mpctf_ambria","mpctf_anoat",
+      "mpctf_ansion2","mpctf_barkhesh","mpctf_basilisk","mpctf_belgaroth","mpctf_bespin","mpctf_bilios",
+      "mpctf_bryndar","mpctf_byss","mpctf_cairn","mpctf_carratos","mpctf_cerea","mpctf_chromovon",
+      "mpctf_corellia","mpctf_dantooine","mpctf_dathomir","mpctf_delaya","mpctf_denon","mpctf_disco",
+      "mpctf_dosuun","mpctf_elrood","mpctf_emerido","mpctf_erkit","mpctf_frisal","mpctf_geladspants",
+      "mpctf_genarius","mpctf_generis","mpctf_gerona","mpctf_hagrent","mpctf_hall_of_the_gods",
+      "mpctf_homon_beta8","mpctf_ichtor","mpctf_illimiran","mpctf_ilum","mpctf_iskalon","mpctf_jodaka",
+      "mpctf_kadavo","mpctf_kejim","mpctf_kharzet","mpctf_korriban2","mpctf_kothis","mpctf_krayt",
+      "mpctf_krildor","mpctf_manaan","mpctf_metalorn","mpctf_nelvaan","mpctf_nsfactory","mpctf_nsgf_beta3",
+      "mpctf_onadax","mpctf_orion","mpctf_paulking","mpctf_ramodi","mpctf_rattatak","mpctf_reboam",
+      "mpctf_refinery","mpctf_rift","mpctf_salliche","mpctf_sedri","mpctf_sertao_alpha2","mpctf_sertao_alpha3",
+      "mpctf_sertao_alpha7","mpctf_sikurd","mpctf_sileron","mpctf_talay","mpctf_taloraan","mpctf_talravin",
+      "mpctf_tanaab","mpctf_taspir","mpctf_telti","mpctf_tozeer","mpctf_trieron","mpctf_vjun","mpctf_ziost",
+      "mpffa1","mpffa2","mpffa3","mpffa4","mpffa5","mpffa_piska"
+    ]);
+
+    function resolveMapImage(mapname) {
+      if (!mapname) return null;
+      const norm = String(mapname)
+        .replaceAll("/", "")
+        .replaceAll("\\", "")
+        .replace(/\xe3/g, "a")
+        .toLowerCase()
+        .trim();
+      if (!norm) return null;
+      const stripped = norm.replace(/_(?:v\d+[a-z]?|b\d+|rc\d+|fix\d*|final|pro|beta\d*|alpha\d*)$/i, "");
+      const candidates = [
+        norm,
+        "mp" + norm,
+        stripped,
+        "mp" + stripped,
+        norm + "2",
+        "mp" + norm + "2",
+        stripped + "2",
+        "mp" + stripped + "2",
+      ];
+      for (const c of candidates) {
+        if (KNOWN_LEVELSHOTS.has(c)) return `/maps/${c}.jpg`;
+      }
+      return null;
+    }
+
+    const HTML_ESCAPES = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    function esc(str) {
+      return String(str ?? "").replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
+    }
+
+    function isQ3Color(str, idx) {
+      return (
+        str[idx] === "^" &&
+        idx + 1 < str.length &&
+        str[idx + 1] !== "^" &&
+        str[idx + 1] >= "0" &&
+        str[idx + 1] <= "9"
+      );
+    }
+
+    function stripQ3(str) {
+      const s = String(str ?? "");
+      let out = "";
+      for (let i = 0; i < s.length; i++) {
+        if (isQ3Color(s, i)) {
+          i++;
+        } else if (s.charCodeAt(i) >= 0x20) {
+          out += s[i];
+        }
+      }
+      return out.trim();
+    }
+
+    function renderQ3Html(str) {
+      const s = String(str ?? "");
+      if (!s) return '<span class="q3-7">Unnamed</span>';
+      let cls = "q3-7";
+      let buf = "";
+      let out = `<span class="${cls}">`;
+      for (let i = 0; i < s.length; i++) {
+        if (isQ3Color(s, i)) {
+          const code = Number(s[i + 1]);
+          const nextCls = `q3-${code >= 0 && code <= 7 ? code : 7}`;
+          out += `${esc(buf)}</span><span class="${nextCls}">`;
+          buf = "";
+          cls = nextCls;
+          i++;
+        } else if (s.charCodeAt(i) >= 0x20) {
+          buf += s[i];
+        }
+      }
+      out += `${esc(buf)}</span>`;
+      return out;
+    }
+
+    /* ========================================================================
+       4. Formatting Helpers (Dates, Durations, Numbers, Play Trigger)
+       ======================================================================== */
+    const numFmt = new Intl.NumberFormat();
+    const fullDateFmt = new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+    const relTimeFmt =
+      typeof Intl.RelativeTimeFormat === "function"
+        ? new Intl.RelativeTimeFormat(undefined, { numeric: "auto" })
+        : null;
+
+    function extractTimestampMs(tc) {
+      if (!tc) return 0;
+      if (typeof tc === "number") return tc;
+      if ("$date" in tc) return Number(tc.$date) || 0;
+      if ("sec" in tc) return Number(tc.sec) * 1000 + (Number(tc.usec) || 0) / 1000;
+      return 0;
+    }
+
+    function formatRelativeTime(ms) {
+      if (!ms) return "Unknown date";
+      const diffSec = Math.round((ms - Date.now()) / 1000);
+      const abs = Math.abs(diffSec);
+      if (!relTimeFmt || abs > 86400 * 45) return fullDateFmt.format(new Date(ms));
+      if (abs < 60) return relTimeFmt.format(diffSec, "second");
+      if (abs < 3600) return relTimeFmt.format(Math.round(diffSec / 60), "minute");
+      if (abs < 86400) return relTimeFmt.format(Math.round(diffSec / 3600), "hour");
+      return relTimeFmt.format(Math.round(diffSec / 86400), "day");
+    }
+
+    function formatDurationMs(ms) {
+      const totalSec = Math.max(0, Math.round((Number(ms) || 0) / 1000));
+      if (!totalSec) return "—";
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      if (h > 0) return `${h}h ${m}m`;
+      if (m > 0) return `${m}m ${String(s).padStart(2, "0")}s`;
+      return `${s}s`;
+    }
+
+    function formatClipClock(ms) {
+      const totalSec = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+      const m = Math.floor(totalSec / 60);
+      const s = String(totalSec % 60).padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    function formatPlaytimeHours(ms) {
+      const hrs = (Number(ms) || 0) / 3600000;
+      if (hrs >= 10) return `${numFmt.format(Math.round(hrs))} hrs`;
+      if (hrs >= 1) return `${hrs.toFixed(1)} hrs`;
+      return `${Math.max(1, Math.round(hrs * 60))} min`;
+    }
+
+    function buildDemoActionPairHtml(href, label, btnText, variantClass = "") {
+      const safeHref = esc(href);
+      const safeLabel = esc(label);
+      return `<span class="demo-action-pair"><a class="dl-link" href="${safeHref}" title="Download demo file (${safeLabel})" aria-label="Download ${safeLabel}"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg></a><button type="button" class="jk-play-btn ${variantClass}" data-demo-url="${safeHref}" data-demo-label="${safeLabel}" title="Play in browser: ${safeLabel}"><svg class="jk-icon-svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor" aria-hidden="true"><path d="M4 2.5v11l9-5.5-9-5.5z"/></svg><span>${esc(btnText)}</span></button></span>`;
+    }
+
+    /* Delegated Play handler for all .jk-play-btn elements we render */
+    document.addEventListener("click", (e) => {
+      const playBtn = e.target.closest("button.jk-play-btn[data-demo-url]");
+      if (!playBtn || playBtn.closest("#jk-pip-card")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const url = playBtn.dataset.demoUrl;
+      const label = playBtn.dataset.demoLabel || "";
+      if (window.JKPiPPlayer && typeof window.JKPiPPlayer.openAndPlay === "function") {
+        window.JKPiPPlayer.openAndPlay(url, {
+          label,
+          unmuteOnUserGesture: Boolean(e.isTrusted),
+        });
+      } else {
+        window.location.href = url;
+      }
+    });
+
+    /* ========================================================================
+       5. Background Autocomplete Indexes (Non-blocking fetch)
+       ======================================================================== */
+    const acData = {
+      players: [], // { raw, clean, lower }
+      maps: [],    // { raw, clean, lower, img }
+      servers: [], // { raw, clean, lower }
+      loaded: false,
+    };
+
+    async function fetchJson(url) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    }
+
+    async function loadAutocompleteData() {
+      if (acData.loaded) return;
+      acData.loaded = true;
+      try {
+        const [maps, servers] = await Promise.all([
+          fetchJson("minrpc.py?rpc=topmaps"),
+          fetchJson("minrpc.py?rpc=topservers"),
+        ]);
+        if (Array.isArray(maps)) {
+          acData.maps = maps
+            .filter(Boolean)
+            .map((raw) => {
+              const clean = String(raw).trim();
+              return { raw, clean, lower: clean.toLowerCase(), img: resolveMapImage(raw) };
+            });
+        }
+        if (Array.isArray(servers)) {
+          acData.servers = servers
+            .filter(Boolean)
+            .map((raw) => {
+              const clean = stripQ3(raw);
+              return { raw, clean: clean || raw, lower: (clean || raw).toLowerCase() };
+            })
+            .filter((x) => x.clean.length > 0);
+        }
+        renderVariantChips();
+      } catch (_) {}
+
+      /* Load 92k player names last so maps & servers are instant */
+      try {
+        const names = await fetchJson("minrpc.py?rpc=topnames");
+        if (Array.isArray(names)) {
+          acData.players = names
+            .filter(Boolean)
+            .map((raw) => {
+              const clean = stripQ3(raw);
+              return { raw, clean, lower: clean.toLowerCase() };
+            })
+            .filter((x) => x.clean.length > 0);
+          renderVariantChips();
+        }
+      } catch (_) {}
+    }
+
+    function searchIndexedList(items, query, limit = 25) {
+      const q = stripQ3(query).toLowerCase();
+      if (!q) return [];
+      const exact = [];
+      const prefix = [];
+      const substr = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.lower === q || item.raw.toLowerCase() === query.toLowerCase()) {
+          exact.push(item);
+        } else if (item.lower.startsWith(q)) {
+          if (prefix.length < limit) prefix.push(item);
+        } else if (item.lower.includes(q)) {
+          if (substr.length < limit) substr.push(item);
+        }
+        if (exact.length >= limit) break;
+      }
+      return [...exact, ...prefix, ...substr].slice(0, limit);
+    }
+
+    function wireAutocomplete(inputId, listId, kind) {
+      const input = document.getElementById(inputId);
+      const list = document.getElementById(listId);
+      if (!input || !list) return;
+
+      let activeIdx = -1;
+      let currentMatches = [];
+
+      const close = () => {
+        list.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+        activeIdx = -1;
+      };
+
+      const render = () => {
+        const val = input.value.trim();
+        const minLen = kind === "players" ? 2 : 1;
+        if (val.length < minLen) {
+          close();
+          return;
+        }
+        const pool = acData[kind] || [];
+        currentMatches = searchIndexedList(pool, val, 24);
+        if (!currentMatches.length) {
+          close();
+          return;
+        }
+        activeIdx = -1;
+        list.innerHTML = currentMatches
+          .map((item, idx) => {
+            if (kind === "maps") {
+              const thumb = item.img
+                ? `<img class="ac-map-thumb" src="${esc(item.img)}" alt="" loading="lazy" />`
+                : "";
+              return `<li class="ac-option" role="option" data-idx="${idx}" aria-selected="false">
+                <span style="display:flex;align-items:center;gap:0.5rem;">${thumb}<span>${esc(item.raw)}</span></span>
+              </li>`;
+            }
+            return `<li class="ac-option" role="option" data-idx="${idx}" aria-selected="false">
+              <span>${renderQ3Html(item.raw)}</span>
+              <span class="ac-raw">${esc(item.raw)}</span>
+            </li>`;
+          })
+          .join("");
+        list.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+      };
+
+      const pick = (idx) => {
+        const chosen = currentMatches[idx];
+        if (!chosen) return;
+        input.value = chosen.raw;
+        close();
+        submitArchiveSearch();
+      };
+
+      input.addEventListener("input", render);
+      input.addEventListener("focus", () => {
+        loadAutocompleteData();
+        if (input.value.trim().length >= (kind === "players" ? 2 : 1)) render();
+      });
+      input.addEventListener("keydown", (e) => {
+        if (list.hidden) return;
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          activeIdx = Math.min(currentMatches.length - 1, activeIdx + 1);
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          activeIdx = Math.max(0, activeIdx - 1);
+        } else if (e.key === "Enter" && activeIdx >= 0) {
+          e.preventDefault();
+          pick(activeIdx);
+          return;
+        } else if (e.key === "Escape") {
+          e.stopPropagation();
+          close();
+          return;
+        } else {
+          return;
+        }
+        list.querySelectorAll(".ac-option").forEach((el, i) => {
+          el.setAttribute("aria-selected", i === activeIdx ? "true" : "false");
+          if (i === activeIdx) el.scrollIntoView({ block: "nearest" });
+        });
+      });
+
+      list.addEventListener("mousedown", (e) => {
+        const opt = e.target.closest(".ac-option");
+        if (!opt) return;
+        e.preventDefault();
+        pick(Number(opt.dataset.idx));
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!input.contains(e.target) && !list.contains(e.target)) close();
+      });
+    }
+
+    wireAutocomplete("f-player", "ac-player", "players");
+    wireAutocomplete("f-map", "ac-map", "maps");
+    wireAutocomplete("f-server", "ac-server", "servers");
+
+    /* Keyboard shortcut: '/' focuses primary search box */
+    document.addEventListener("keydown", (e) => {
+      if (
+        e.key === "/" &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName || "")
+      ) {
+        const target =
+          document.getElementById("player-dir-input") || document.getElementById("f-player");
+        if (target && target.offsetParent !== null) {
+          e.preventDefault();
+          target.focus();
+          target.select();
+        }
+      }
+    });
+
+    /* ========================================================================
+       6. URL Hash Router & State Management
+       ======================================================================== */
+    const state = {
+      view: "matches", // matches | match | demos | players | player | bundle
+      offset: 0,
+      limit: 10,
+      player: "",
+      map: "",
+      server: "",
+      before: "", // YYYY-MM-DD
+      matchOnly: true,
+      id: "",
+      playerTab: "top", // top | new | search
+      playerQuery: "",
+      canMerge: false,
+      activeEloChart: null,
+    };
+
+    const viewContainer = document.getElementById("view-container");
+    const filterSection = document.getElementById("archive-filter-section");
+    const fPlayer = document.getElementById("f-player");
+    const fMap = document.getElementById("f-map");
+    const fServer = document.getElementById("f-server");
+    const fBefore = document.getElementById("f-before");
+    const fMatch = document.getElementById("f-match");
+
+    function parseHash() {
+      const raw = window.location.hash.replace(/^#/, "");
+      const params = new URLSearchParams(raw);
+
+      /* Backward compatibility with legacy match.html / aplayer2.html hashes */
+      const legacyRpc = params.get("rpc");
+      if (legacyRpc === "lookup" && params.get("id")) {
+        state.view = "match";
+        state.id = params.get("id") || "";
+        return;
+      }
+      if (legacyRpc === "search" || legacyRpc === "recentDemos") {
+        state.view = "matches";
+        state.offset = Math.max(0, parseInt(params.get("offset") || "0", 10) || 0);
+        state.limit = Math.max(1, parseInt(params.get("limit") || "10", 10) || 10);
+        state.player = params.get("player") || "";
+        state.map = params.get("map") || "";
+        state.server = params.get("server") || "";
+        const rawBefore = params.get("before") || "";
+        if (/^\d+$/.test(rawBefore)) {
+          const d = new Date(Number(rawBefore) * 1000);
+          if (!Number.isNaN(d.getTime())) {
+            const pad = (n) => String(n).padStart(2, "0");
+            state.before = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          } else {
+            state.before = "";
+          }
+        } else {
+          state.before = rawBefore;
+        }
+        state.matchOnly = params.has("match") ? params.get("match") === "true" : true;
+        return;
+      }
+      if (!params.get("view") && params.get("id") && !legacyRpc) {
+        state.view = "player";
+        state.id = params.get("id") || "";
+        return;
+      }
+
+      state.view = params.get("view") || "matches";
+      state.offset = Math.max(0, parseInt(params.get("offset") || "0", 10) || 0);
+      const defaultLimit = state.view === "players" ? 25 : state.view === "demos" ? 15 : 10;
+      state.limit = Math.max(1, parseInt(params.get("limit") || String(defaultLimit), 10) || defaultLimit);
+      state.player = params.get("player") || "";
+      state.map = params.get("map") || "";
+      state.server = params.get("server") || "";
+      state.before = params.get("before") || "";
+      if (params.has("match")) {
+        state.matchOnly = params.get("match") === "true";
+      } else {
+        state.matchOnly = state.view === "matches";
+      }
+      state.id = params.get("id") || "";
+      state.playerTab = params.get("tab") || "top";
+      state.playerQuery = params.get("q") || "";
+    }
+
+    function pushHash(overrides = {}) {
+      Object.assign(state, overrides);
+      const p = new URLSearchParams();
+      p.set("view", state.view);
+      if (state.view === "match" || state.view === "player") {
+        if (state.id) p.set("id", state.id);
+      } else if (state.view === "matches" || state.view === "demos") {
+        if (state.player) p.set("player", state.player);
+        if (state.map) p.set("map", state.map);
+        if (state.server) p.set("server", state.server);
+        if (state.before) p.set("before", state.before);
+        p.set("match", String(Boolean(state.matchOnly)));
+        if (state.offset > 0) p.set("offset", String(state.offset));
+      } else if (state.view === "players") {
+        if (state.playerTab !== "top") p.set("tab", state.playerTab);
+        if (state.playerQuery) p.set("q", state.playerQuery);
+        if (state.offset > 0) p.set("offset", String(state.offset));
+      }
+      const nextHash = "#" + p.toString();
+      if (window.location.hash !== nextHash) {
+        window.location.hash = nextHash;
+      } else {
+        renderCurrentView();
+      }
+    }
+
+    function syncHeaderNav() {
+      const navGroup =
+        state.view === "match"
+          ? "matches"
+          : state.view === "player"
+            ? "players"
+            : state.view;
+      document.querySelectorAll("[data-view-link]").forEach((a) => {
+        if (a.dataset.viewLink === navGroup) {
+          a.setAttribute("aria-current", "page");
+        } else {
+          a.removeAttribute("aria-current");
+        }
+      });
+
+      const showArchiveFilters = state.view === "matches" || state.view === "demos";
+      if (filterSection) filterSection.hidden = !showArchiveFilters;
+      if (showArchiveFilters) {
+        if (fPlayer) fPlayer.value = state.player;
+        if (fMap) fMap.value = state.map;
+        if (fServer) fServer.value = state.server;
+        if (fBefore) fBefore.value = state.before;
+        if (fMatch) fMatch.checked = Boolean(state.matchOnly);
+        renderVariantChips();
+      }
+
+      /* Keep Classic UI button context-aware while always passing ?classic=1 */
+      const classicLink = document.getElementById("classic-ui-link");
+      if (classicLink) {
+        if (state.view === "match" && state.id) {
+          classicLink.href = `match.html?classic=1#rpc=lookup&id=${encodeURIComponent(state.id)}`;
+        } else if (
+          state.view === "matches" &&
+          (state.player || state.map || state.server || state.before || !state.matchOnly)
+        ) {
+          const cp = new URLSearchParams({ rpc: "search", offset: String(state.offset), limit: "5" });
+          if (state.player) cp.set("player", state.player);
+          if (state.before) cp.set("before", state.before);
+          if (state.map) cp.set("map", state.map);
+          if (state.server) cp.set("server", state.server);
+          cp.set("match", String(Boolean(state.matchOnly)));
+          classicLink.href = `match.html?classic=1#${cp.toString()}`;
+        } else {
+          classicLink.href = "match.html?classic=1";
+        }
+      }
+    }
+
+    /* Smart Q3 Variant Disambiguation Chips */
+    function renderVariantChips() {
+      const row = document.getElementById("q3-variants-row");
+      if (!row) return;
+      if (state.view !== "matches" && state.view !== "demos") {
+        row.hidden = true;
+        return;
+      }
+      const chips = [];
+
+      if (state.player && acData.players.length) {
+        const cleanTarget = stripQ3(state.player).toLowerCase();
+        const exactClean = acData.players
+          .filter((x) => x.lower === cleanTarget)
+          .slice(0, 8);
+        if (exactClean.length > 1 || (exactClean.length === 1 && exactClean[0].raw !== state.player)) {
+          chips.push(`<span class="field-label">Player color variants:</span>`);
+          for (const v of exactClean) {
+            const active = v.raw === state.player ? "is-active" : "";
+            chips.push(
+              `<button type="button" class="chip ${active}" data-set-player="${esc(v.raw)}">${renderQ3Html(v.raw)} <code style="font-size:0.7rem;opacity:0.75;">${esc(v.raw)}</code></button>`
+            );
+          }
+        }
+      }
+
+      if (state.map && acData.maps.length) {
+        const cleanMap = state.map.toLowerCase().replace(/^mp\//, "");
+        const mapVars = acData.maps
+          .filter((m) => m.lower.replace(/^mp\//, "") === cleanMap)
+          .slice(0, 6);
+        if (mapVars.length > 1 || (mapVars.length === 1 && mapVars[0].raw !== state.map)) {
+          chips.push(`<span class="field-label" style="margin-inline-start:0.4rem;">Map case variants:</span>`);
+          for (const m of mapVars) {
+            const active = m.raw === state.map ? "is-active" : "";
+            chips.push(
+              `<button type="button" class="chip ${active}" data-set-map="${esc(m.raw)}">${esc(m.raw)}</button>`
+            );
+          }
+        }
+      }
+
+      if (!chips.length) {
+        row.hidden = true;
+        row.innerHTML = "";
+      } else {
+        row.innerHTML = chips.join("");
+        row.hidden = false;
+      }
+    }
+
+    document.getElementById("q3-variants-row")?.addEventListener("click", (e) => {
+      const pBtn = e.target.closest("[data-set-player]");
+      if (pBtn) {
+        pushHash({ player: pBtn.dataset.setPlayer || "", offset: 0 });
+        return;
+      }
+      const mBtn = e.target.closest("[data-set-map]");
+      if (mBtn) {
+        pushHash({ map: mBtn.dataset.setMap || "", offset: 0 });
+      }
+    });
+
+    function resolveAutoVariant(rawInput, indexedPool) {
+      const trimmed = rawInput.trim();
+      if (!trimmed || trimmed.includes("^") || !indexedPool.length) return trimmed;
+      const exactRaw = indexedPool.find((x) => x.raw === trimmed);
+      if (exactRaw) return trimmed;
+      const cleanMatches = indexedPool.filter((x) => x.lower === trimmed.toLowerCase());
+      const whiteDefault = cleanMatches.find((x) => x.raw.toLowerCase() === `^7${trimmed.toLowerCase()}`);
+      if (whiteDefault) return whiteDefault.raw;
+      if (cleanMatches.length === 1) return cleanMatches[0].raw;
+      return trimmed;
+    }
+
+    function submitArchiveSearch() {
+      const rawP = fPlayer?.value || "";
+      const rawM = fMap?.value || "";
+      const rawS = fServer?.value || "";
+      const resolvedPlayer = resolveAutoVariant(rawP, acData.players);
+      const resolvedServer = resolveAutoVariant(rawS, acData.servers);
+      let resolvedMap = rawM.trim();
+      if (resolvedMap && acData.maps.length && !acData.maps.some((m) => m.raw === resolvedMap)) {
+        const ci = acData.maps.find((m) => m.lower === resolvedMap.toLowerCase());
+        if (ci) resolvedMap = ci.raw;
+      }
+
+      const nextView = state.view === "demos" ? "demos" : "matches";
+      pushHash({
+        view: nextView,
+        player: resolvedPlayer,
+        map: resolvedMap,
+        server: resolvedServer,
+        before: fBefore?.value || "",
+        matchOnly: Boolean(fMatch?.checked),
+        offset: 0,
+      });
+    }
+
+    document.getElementById("archive-search-form")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      submitArchiveSearch();
+    });
+
+    document.getElementById("btn-reset-filters")?.addEventListener("click", () => {
+      const nextView = state.view === "demos" ? "demos" : "matches";
+      pushHash({
+        view: nextView,
+        player: "",
+        map: "",
+        server: "",
+        before: "",
+        matchOnly: nextView === "matches",
+        offset: 0,
+      });
+    });
+
+    /* ========================================================================
+       7. Pagination Component
+       ======================================================================== */
+    function buildPaginationHtml(total, curOffset, limit) {
+      const safeTotal = Number.isFinite(total) && total > 0 ? total : 0;
+      if (safeTotal <= limit) return "";
+      const totalPages = Math.ceil(safeTotal / limit);
+      const curPage = Math.floor(curOffset / limit);
+
+      const pages = new Set([0, totalPages - 1, curPage - 1, curPage, curPage + 1]);
+      if (curPage < 3) { pages.add(1); pages.add(2); pages.add(3); }
+      if (curPage > totalPages - 4) { pages.add(totalPages - 2); pages.add(totalPages - 3); }
+      const sorted = [...pages].filter((p) => p >= 0 && p < totalPages).sort((a, b) => a - b);
+
+      let html = `<nav class="pagination-bar" aria-label="Pagination">`;
+      html += `<button type="button" class="page-btn" data-page-offset="${Math.max(0, (curPage - 1) * limit)}" ${curPage === 0 ? "disabled" : ""}>← Prev</button>`;
+      let prev = -1;
+      for (const p of sorted) {
+        if (prev !== -1 && p - prev > 1) {
+          html += `<span style="padding-inline:0.3rem;color:var(--text-muted);">…</span>`;
+        }
+        const off = p * limit;
+        const isCur = p === curPage ? 'aria-current="page"' : "";
+        html += `<button type="button" class="page-btn" data-page-offset="${off}" ${isCur}>${numFmt.format(p + 1)}</button>`;
+        prev = p;
+      }
+      html += `<button type="button" class="page-btn" data-page-offset="${Math.min((totalPages - 1) * limit, (curPage + 1) * limit)}" ${curPage >= totalPages - 1 ? "disabled" : ""}>Next →</button>`;
+      html += `</nav>`;
+      return html;
+    }
+
+    viewContainer?.addEventListener("click", (e) => {
+      const pageBtn = e.target.closest("[data-page-offset]");
+      if (pageBtn && !pageBtn.disabled) {
+        const nextOffset = parseInt(pageBtn.dataset.pageOffset || "0", 10) || 0;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        pushHash({ offset: nextOffset });
+        return;
+      }
+
+      const mapBtn = e.target.closest("[data-filter-map]");
+      if (mapBtn) {
+        const targetView = state.view === "demos" ? "demos" : "matches";
+        pushHash({ view: targetView, map: mapBtn.dataset.filterMap || "", offset: 0 });
+        return;
+      }
+
+      const srvBtn = e.target.closest("[data-filter-server]");
+      if (srvBtn) {
+        const targetView = state.view === "demos" ? "demos" : "matches";
+        pushHash({ view: targetView, server: srvBtn.dataset.filterServer || "", offset: 0 });
+        return;
+      }
+
+      const statsBtn = e.target.closest("[data-toggle-ctfstats]");
+      if (statsBtn) {
+        const paneId = statsBtn.dataset.toggleCtfstats;
+        const pane = paneId ? document.getElementById(paneId) : null;
+        if (pane) {
+          const nextHidden = !pane.hidden;
+          pane.hidden = nextHidden;
+          statsBtn.setAttribute("aria-expanded", nextHidden ? "false" : "true");
+        }
+      }
+    });
+
+    /* ========================================================================
+       8. TrueSkill Win Probability & Competitive Match Card Renderer
+       ======================================================================== */
+    const TRUESKILL_BETA = 25.0 / 6.0;
+
+    function erfApprox(x) {
+      const sign = x < 0 ? -1 : 1;
+      const ax = Math.abs(x);
+      const t = 1.0 / (1.0 + 0.3275911 * ax);
+      const y =
+        1.0 -
+        (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t +
+          0.254829592) *
+          t) *
+          Math.exp(-ax * ax);
+      return sign * y;
+    }
+
+    function normalCdf(z) {
+      return 0.5 * (1.0 + erfApprox(z / Math.SQRT2));
+    }
+
+    function computeMatchPrediction(redEntries, blueEntries, redScore, blueScore) {
+      const sumWr = redEntries.reduce((s, e) => s + e.w, 0);
+      const sumWb = blueEntries.reduce((s, e) => s + e.w, 0);
+      if (sumWr < 2.5 || sumWb < 2.5 || Math.abs(sumWr - sumWb) > 0.65) {
+        return null;
+      }
+      const targetTeamSize = Math.max(3, Math.round((sumWr + sumWb) / 2));
+      const normR = redEntries.map((e) => ({ mu: e.mu, sigma: e.sigma, w: (e.w * targetTeamSize) / sumWr }));
+      const normB = blueEntries.map((e) => ({ mu: e.mu, sigma: e.sigma, w: (e.w * targetTeamSize) / sumWb }));
+
+      const deltaMu =
+        normR.reduce((s, e) => s + e.w * e.mu, 0) -
+        normB.reduce((s, e) => s + e.w * e.mu, 0);
+      const sumSigmaSq =
+        normR.reduce((s, e) => s + (e.w * e.sigma) ** 2, 0) +
+        normB.reduce((s, e) => s + (e.w * e.sigma) ** 2, 0);
+      const sumBetaSq =
+        (normR.reduce((s, e) => s + e.w ** 2, 0) + normB.reduce((s, e) => s + e.w ** 2, 0)) *
+        TRUESKILL_BETA *
+        TRUESKILL_BETA;
+
+      const denom = Math.sqrt(sumBetaSq + sumSigmaSq);
+      if (!(denom > 0)) return null;
+      const redProb = normalCdf(deltaMu / denom);
+      const blueProb = 1.0 - redProb;
+      const redPct = Math.round(redProb * 100);
+      const bluePct = 100 - redPct;
+
+      if (redScore === null || blueScore === null) return null;
+      if (redScore === blueScore) {
+        return {
+          redProb,
+          blueProb,
+          redPct,
+          bluePct,
+          isUpset: false,
+          verdictClass: "",
+          verdictHtml: `Draw · ${redPct}%–${bluePct}% pre-match`,
+          tooltip: `Pre-match TrueSkill win probability: Red ${(redProb * 100).toFixed(1)}% vs Blue ${(blueProb * 100).toFixed(1)}%`,
+        };
+      }
+
+      const redWon = redScore > blueScore;
+      const winnerName = redWon ? "Red" : "Blue";
+      const winnerProb = redWon ? redProb : blueProb;
+      const winPct = Math.round(winnerProb * 100);
+      const baseTip = `Pre-match TrueSkill win odds: Red ${(redProb * 100).toFixed(1)}% · Blue ${(blueProb * 100).toFixed(1)}% (${winnerName} won with ${(winnerProb * 100).toFixed(1)}% expected chance)`;
+
+      if (winnerProb < 0.30) {
+        return {
+          redProb,
+          blueProb,
+          redPct,
+          bluePct,
+          isUpset: true,
+          verdictClass: "is-major-upset",
+          verdictHtml: `⚡ Major Upset · ${winPct}% odds`,
+          tooltip: baseTip,
+        };
+      }
+      if (winnerProb < 0.45) {
+        return {
+          redProb,
+          blueProb,
+          redPct,
+          bluePct,
+          isUpset: true,
+          verdictClass: "is-upset",
+          verdictHtml: `⚡ Upset · ${winPct}% odds`,
+          tooltip: baseTip,
+        };
+      }
+      if (winnerProb <= 0.55) {
+        return {
+          redProb,
+          blueProb,
+          redPct,
+          bluePct,
+          isUpset: false,
+          verdictClass: "",
+          verdictHtml: `Even toss-up · ${winPct}% odds`,
+          tooltip: baseTip,
+        };
+      }
+      return {
+        redProb,
+        blueProb,
+        redPct,
+        bluePct,
+        isUpset: false,
+        verdictClass: "",
+        verdictHtml: `✓ Expected · ${winPct}% odds`,
+        tooltip: baseTip,
+      };
+    }
+
+    function renderMatchCard(match, idx, isRelativeTime) {
+      const matchId = String(match._id || "");
+      const mapname = String(match.mapname || "unknown");
+      const mapImg = resolveMapImage(mapname);
+      const rawServer = String(match.sv_hostname || "");
+      const cleanServer = stripQ3(rawServer) || "Unknown Server";
+      const tsMs = extractTimestampMs(match.time_created);
+      const timeDisplay = isRelativeTime ? formatRelativeTime(tsMs) : fullDateFmt.format(new Date(tsMs));
+      const fullTimeTitle = tsMs ? fullDateFmt.format(new Date(tsMs)) : "";
+      const durationMs = Math.max(0, (match.map_end_time || 0) - (match.map_start_time || 0));
+      const durationStr = formatDurationMs(durationMs);
+      const mapMinutes = Math.max(1, durationMs / 60000);
+
+      /* Map client_id -> best demo file entry (deduplicating ns & bookmarks across bot/pug copies) */
+      const fileMap = {};
+      for (const file of match.demos || []) {
+        const cid = String(file.client_id);
+        const tagClips = (arr, srcId) =>
+          (arr || []).map((c) => Object.assign({}, c, { _demoId: c._demoId || srcId }));
+        const incomingNs = tagClips(file.ns, file.id);
+        const incomingBm = tagClips(file.bookmarks, file.id);
+        const existing = fileMap[cid];
+        if (existing) {
+          const dedupBy = (items, keyFn) => {
+            const seen = new Set();
+            const out = [];
+            for (const it of items) {
+              const k = keyFn(it);
+              if (!seen.has(k)) {
+                seen.add(k);
+                out.push(it);
+              }
+            }
+            return out;
+          };
+          const mergedNs = dedupBy(
+            [...(existing.ns || []), ...incomingNs],
+            (s) => `${Math.round((s.time || 0) / 500)}:${Math.round((s.score || 0) * 100)}`
+          );
+          const mergedBm = dedupBy(
+            [...(existing.bookmarks || []), ...incomingBm],
+            (b) => `${Math.round((b.time || 0) / 500)}:${b.mark || ""}`
+          );
+          const preferred = "rating" in existing && !("rating" in file) ? existing : file;
+          fileMap[cid] = Object.assign({}, preferred, {
+            ns: mergedNs.length ? mergedNs : undefined,
+            bookmarks: mergedBm.length ? mergedBm : undefined,
+          });
+        } else {
+          fileMap[cid] = Object.assign({}, file, {
+            ns: incomingNs.length ? incomingNs : undefined,
+            bookmarks: incomingBm.length ? incomingBm : undefined,
+          });
+        }
+      }
+
+      /* Choose final scoreboard snapshot (prefer last is_final===1 with ctfstats, matching server end-of-map dump) */
+      let finalScores = null;
+      if (Array.isArray(match.scores) && match.scores.length > 0) {
+        const hasCtf = (snap) =>
+          [...(snap.redplayers || []), ...(snap.blueplayers || [])].some((pl) => pl && pl.ctfstats);
+        for (let i = match.scores.length - 1; i >= 0; i--) {
+          if (match.scores[i].is_final === 1 && hasCtf(match.scores[i])) {
+            finalScores = match.scores[i];
+            break;
+          }
+        }
+        if (!finalScores) {
+          for (let i = match.scores.length - 1; i >= 0; i--) {
+            if (match.scores[i].is_final === 1) {
+              finalScores = match.scores[i];
+              break;
+            }
+          }
+        }
+        if (!finalScores) {
+          finalScores = match.scores[match.scores.length - 1];
+        }
+      }
+
+      const redScore = finalScores && "red_score" in finalScores ? Number(finalScores.red_score) : null;
+      const blueScore = finalScores && "blue_score" in finalScores ? Number(finalScores.blue_score) : null;
+      const hasTeamScores = redScore !== null && blueScore !== null;
+
+      const rosters = { red: [], blue: [], free: [], spectator: [] };
+      const ratedTeams = { red: [], blue: [] };
+      const allHighlights = [];
+      const ctfAnalyticsRows = [];
+      const seenClients = new Set();
+
+      const processPlayer = (p, teamKey, isDisconnected = false) => {
+        const cid = String(p.client);
+        if (seenClients.has(cid)) return;
+        seenClients.add(cid);
+
+        const file = fileMap[cid];
+        const rawName = p.client_name || (file && file.name) || "Padawan";
+        const cleanName = stripQ3(rawName) || "Player";
+        const coloredName = renderQ3Html(rawName);
+        const playerOid = file && file.player ? String(file.player) : "";
+
+        /* Pre-match TrueSkill & Updated Elo */
+        let endElo = null;
+        let startElo = null;
+        let eloDelta = null;
+        if (file && file.rating && file.rating.start && file.rating.updated) {
+          startElo = Math.trunc(file.rating.start.friendly * 100);
+          endElo = Math.trunc(file.rating.updated.friendly * 100);
+          eloDelta = endElo - startElo;
+
+          const rawStart = file.rating.start.raw;
+          if (
+            rawStart &&
+            typeof rawStart.mu === "number" &&
+            typeof rawStart.sigma === "number" &&
+            (teamKey === "red" || teamKey === "blue")
+          ) {
+            const playedMins = typeof p.time === "number" && p.time > 0 ? p.time : mapMinutes;
+            const w = Math.min(1.0, Math.max(0.05, playedMins / mapMinutes));
+            ratedTeams[teamKey].push({ mu: rawStart.mu, sigma: rawStart.sigma, w });
+          }
+        }
+
+        /* Demo Playback Action */
+        const scoreSuffix = hasTeamScores ? ` (${redScore}–${blueScore})` : "";
+        const contextMeta = `${mapname}${scoreSuffix} · ${cleanServer}`;
+        let actionHtml = "";
+        if (file && file.id) {
+          const href = `getdemo.php?demo=${encodeURIComponent(file.id)}`;
+          actionHtml = buildDemoActionPairHtml(href, `${cleanName} — ${contextMeta}`, "POV", "");
+        } else if ((match.demos || []).length > 0 && teamKey !== "spectator") {
+          const href = `mergedemo.php?matchid=${encodeURIComponent(matchId)}&clientid=${encodeURIComponent(cid)}`;
+          actionHtml = buildDemoActionPairHtml(
+            href,
+            `${cleanName} (Inferred POV) — ${contextMeta}`,
+            "Inferred",
+            "is-inferred"
+          );
+        }
+
+        /* Nice Shots & Bookmarks */
+        const playerClips = [];
+        if (file && file.id) {
+          for (const shot of file.ns || []) {
+            const demoTarget = shot._demoId || file.id;
+            const clock = formatClipClock(shot.time);
+            const rating10 = Math.round((shot.score - 1) * 10 + 1);
+            const prefix = `${Math.round(shot.score * 1000) / 1000} `;
+            const clipUrl = `trimdemo.php?demo=${encodeURIComponent(demoTarget)}&time=${shot.time}&before=9000&after=7000&prefix=${encodeURIComponent(prefix)}`;
+            const clipObj = {
+              time: shot.time,
+              clock,
+              badgeText: `★ NS ${rating10}/10 @ ${clock}`,
+              playerColored: coloredName,
+              cleanName,
+              url: clipUrl,
+              label: `${cleanName} · Nice Shot ${rating10}/10 @ ${clock} — ${mapname}`,
+            };
+            playerClips.push(clipObj);
+            allHighlights.push(clipObj);
+          }
+          for (const bm of file.bookmarks || []) {
+            const demoTarget = bm._demoId || file.id;
+            const clock = formatClipClock(bm.time);
+            const mark = bm.mark || "ns";
+            const clipUrl = `trimdemo.php?demo=${encodeURIComponent(demoTarget)}&time=${bm.time}&before=13000&after=7000&prefix=${encodeURIComponent(mark + " ")}`;
+            const clipObj = {
+              time: bm.time,
+              clock,
+              badgeText: `🔖 ${mark.toUpperCase()} @ ${clock}`,
+              playerColored: coloredName,
+              cleanName,
+              url: clipUrl,
+              label: `${cleanName} · Bookmark (${mark}) @ ${clock} — ${mapname}`,
+            };
+            playerClips.push(clipObj);
+            allHighlights.push(clipObj);
+          }
+        }
+
+        const ctf = p.ctfstats || null;
+        if (ctf && (teamKey === "red" || teamKey === "blue")) {
+          ctfAnalyticsRows.push({
+            team: teamKey,
+            coloredName,
+            playerOid,
+            score: p.score ?? 0,
+            caps: ctf.captures ?? 0,
+            assists: ctf.assists ?? 0,
+            rets: ctf.rets ?? 0,
+            fckil: ctf.fckil ?? 0,
+            defends: ctf.defends ?? 0,
+            dmg: ctf.dmgdlt ?? ctf.dmg ?? 0,
+            tkn: ctf.tkn ?? 0,
+            fcDmg: ctf["fc dmg"] ?? 0,
+            clrDmg: ctf["clr dmg"] ?? 0,
+            holdMs: ctf["total hold"] ?? 0,
+            topSpd: ctf["top spd"] ?? 0,
+            te: ctf.TE ?? 0,
+            pits: ctf.pits ?? 0,
+            airs: ctf.airs ?? 0,
+            acc: ctf.accuracy ?? null,
+          });
+        }
+
+        rosters[teamKey].push({
+          cleanName,
+          coloredName,
+          playerOid,
+          startElo,
+          endElo,
+          eloDelta,
+          capsNum: ctf && typeof ctf.captures === "number" ? ctf.captures : null,
+          retsNum: ctf && typeof ctf.rets === "number" ? ctf.rets : null,
+          score: p.score ?? "—",
+          dmgNum: ctf ? (ctf.dmgdlt ?? ctf.dmg ?? null) : null,
+          time: p.time ?? "—",
+          ping: p.ping ?? "—",
+          actionHtml,
+          playerClips,
+          isDisconnected,
+        });
+      };
+
+      if (finalScores) {
+        const teamMap = [
+          ["redplayers", "red"],
+          ["blueplayers", "blue"],
+          ["freeplayers", "free"],
+          ["specplayers", "spectator"],
+        ];
+        for (const [field, tKey] of teamMap) {
+          for (const p of finalScores[field] || []) {
+            processPlayer(p, tKey, false);
+          }
+        }
+
+        /* Disconnected players from earlier snapshots or demo files */
+        const missing = {};
+        for (const snap of match.scores || []) {
+          for (const [field, tKey] of teamMap) {
+            for (const p of snap[field] || []) {
+              const cid = String(p.client);
+              if (seenClients.has(cid)) continue;
+              if (!missing[cid] || Number(p.time) > Number(missing[cid].p.time)) {
+                missing[cid] = { p, tKey };
+              }
+            }
+          }
+        }
+        for (const d of match.demos || []) {
+          const cid = String(d.client_id);
+          if (!seenClients.has(cid) && !missing[cid]) {
+            missing[cid] = {
+              p: { client: d.client_id, client_name: d.name, score: "?", ping: "?", time: "?" },
+              tKey: "spectator",
+            };
+          }
+        }
+        for (const { p, tKey } of Object.values(missing)) {
+          processPlayer(p, tKey, true);
+        }
+      }
+
+      allHighlights.sort((a, b) => a.time - b.time);
+
+      const hasCtfCols = ctfAnalyticsRows.length > 0;
+      const gridCls = hasCtfCols ? "roster-grid-ctf" : "roster-grid-basic";
+      const prediction = hasTeamScores
+        ? computeMatchPrediction(ratedTeams.red, ratedTeams.blue, redScore, blueScore)
+        : null;
+
+      const renderTeamHeader = (label) => {
+        if (hasCtfCols) {
+          return `<div class="team-col-header ${gridCls}">
+            <span>${esc(label)}</span>
+            <span class="hdr-stat" title="Updated Elo rating">Elo</span>
+            <span class="hdr-stat col-opt-sm" title="Rating change">±</span>
+            <span class="hdr-stat col-opt-sm" title="Flag captures">Cap</span>
+            <span class="hdr-stat col-opt-sm" title="Flag returns">Ret</span>
+            <span class="hdr-stat" title="Score">Score</span>
+            <span class="hdr-stat" title="Total damage dealt">Dmg</span>
+            <span class="hdr-stat col-opt-sm" title="Minutes played">Min</span>
+            <span class="hdr-stat" title="Ping (ms)">Ping</span>
+            <span class="hdr-stat">Demo</span>
+          </div>`;
+        }
+        return `<div class="team-col-header ${gridCls}">
+          <span>${esc(label)}</span>
+          <span class="hdr-stat" title="Updated Elo rating">Elo</span>
+          <span class="hdr-stat col-opt-sm" title="Rating change">±</span>
+          <span class="hdr-stat" title="Score">Score</span>
+          <span class="hdr-stat col-opt-sm" title="Minutes played">Min</span>
+          <span class="hdr-stat" title="Ping (ms)">Ping</span>
+          <span class="hdr-stat">Demo</span>
+        </div>`;
+      };
+
+      const renderRosterRow = (r) => {
+        const nameNode = r.playerOid
+          ? `<a class="player-name-link" href="#view=player&id=${encodeURIComponent(r.playerOid)}" title="${esc(r.cleanName)}">${r.coloredName}</a>`
+          : `<span class="player-name-link" title="${esc(r.cleanName)}">${r.coloredName}</span>`;
+        const discTag = r.isDisconnected
+          ? `<span class="left-note" title="Disconnected before final scoreboard">(left)</span>`
+          : "";
+
+        const eloCell =
+          r.endElo !== null
+            ? `<span class="cell-num" title="Elo: ${r.startElo} → ${r.endElo}">${r.endElo}</span>`
+            : `<span class="cell-num is-muted-zero">—</span>`;
+
+        let deltaCell = `<span class="cell-num col-opt-sm is-muted-zero">—</span>`;
+        if (r.eloDelta !== null) {
+          const signStr = r.eloDelta > 0 ? `+${r.eloDelta}` : `${r.eloDelta}`;
+          const dCls = r.eloDelta > 0 ? "is-pos" : r.eloDelta < 0 ? "is-neg" : "";
+          deltaCell = `<span class="cell-num col-opt-sm elo-delta ${dCls}" title="Elo change: ${r.startElo} → ${r.endElo}">${signStr}</span>`;
+        }
+
+        const fmtScore =
+          typeof r.score === "number" ? numFmt.format(r.score) : esc(r.score);
+        const minStr = typeof r.time === "number" ? `${r.time}m` : esc(r.time);
+
+        if (hasCtfCols) {
+          const capCell =
+            r.capsNum !== null && r.capsNum > 0
+              ? `<span class="cell-num col-opt-sm is-highlight" title="${r.capsNum} flag captures">${r.capsNum}</span>`
+              : `<span class="cell-num col-opt-sm is-muted-zero">${r.capsNum === 0 ? "·" : "—"}</span>`;
+          const retCell =
+            r.retsNum !== null && r.retsNum > 0
+              ? `<span class="cell-num col-opt-sm" title="${r.retsNum} flag returns">${r.retsNum}</span>`
+              : `<span class="cell-num col-opt-sm is-muted-zero">${r.retsNum === 0 ? "·" : "—"}</span>`;
+          const dmgCell =
+            r.dmgNum !== null
+              ? `<span class="cell-num">${numFmt.format(Number(r.dmgNum) || 0)}</span>`
+              : `<span class="cell-num is-muted-zero">—</span>`;
+
+          return `<li class="roster-row ${gridCls} ${r.isDisconnected ? "is-disconnected" : ""}">
+            <div class="player-ident">${nameNode}${discTag}</div>
+            ${eloCell}
+            ${deltaCell}
+            ${capCell}
+            ${retCell}
+            <span class="cell-num is-primary">${fmtScore}</span>
+            ${dmgCell}
+            <span class="cell-num col-opt-sm">${minStr}</span>
+            <span class="cell-num">${esc(r.ping)}</span>
+            <div>${r.actionHtml}</div>
+          </li>`;
+        }
+
+        return `<li class="roster-row ${gridCls} ${r.isDisconnected ? "is-disconnected" : ""}">
+          <div class="player-ident">${nameNode}${discTag}</div>
+          ${eloCell}
+          ${deltaCell}
+          <span class="cell-num is-primary">${fmtScore}</span>
+          <span class="cell-num col-opt-sm">${minStr}</span>
+          <span class="cell-num">${esc(r.ping)}</span>
+          <div>${r.actionHtml}</div>
+        </li>`;
+      };
+
+      const matchDemoUrl = `/minrpc.py?rpc=matchdemo&id=${encodeURIComponent(matchId)}`;
+      const matchWatchLabel = `Match Demo — ${mapname}${hasTeamScores ? ` (${redScore}–${blueScore})` : ""} · ${cleanServer}`;
+      const analyticsId = `ctf-stats-${esc(matchId)}-${idx}`;
+
+      const scoreCenterHtml = hasTeamScores
+        ? `<div class="score-centerpiece" ${prediction ? `title="${esc(prediction.tooltip)}"` : ""}>
+            <div class="score-readout" aria-label="Final score: Red ${redScore}, Blue ${blueScore}">
+              <span class="score-team-lbl is-red">${redScore > blueScore ? "▲ " : ""}RED</span>
+              <span class="score-num is-red ${redScore < blueScore ? "is-loser" : ""}">${redScore}</span>
+              <span class="score-sep">–</span>
+              <span class="score-num is-blue ${blueScore < redScore ? "is-loser" : ""}">${blueScore}</span>
+              <span class="score-team-lbl is-blue">BLUE${blueScore > redScore ? " ▲" : ""}</span>
+            </div>
+            ${
+              prediction
+                ? `<div class="odds-bar-track" aria-hidden="true">
+                    <div class="odds-bar-red" style="inline-size:${prediction.redPct}%;"></div>
+                  </div>
+                  <div class="odds-verdict ${prediction.verdictClass}">
+                    <span>${prediction.verdictHtml}</span>
+                  </div>`
+                : ""
+            }
+          </div>`
+        : `<div></div>`;
+
+      const highlightsHtml = allHighlights.length
+        ? `<div class="highlights-strip">
+            <span class="highlights-label">⚡ Highlights (${allHighlights.length}):</span>
+            ${allHighlights
+              .map(
+                (h) =>
+                  buildDemoActionPairHtml(h.url, h.label, `${h.cleanName} · ${h.badgeText}`, "is-clip")
+              )
+              .join("")}
+          </div>`
+        : "";
+
+      /* Optional Deep CTF Stats Table */
+      let ctfAnalyticsHtml = "";
+      if (ctfAnalyticsRows.length > 0) {
+        const capId = `cap-${analyticsId}`;
+        ctfAnalyticsHtml = `<div class="ctf-analytics-pane" id="${analyticsId}" hidden>
+          <div tabindex="0" role="region" aria-labelledby="${capId}" class="table-wrapper">
+            <table class="data-table">
+              <caption id="${capId}">Detailed CTF Telemetry — ${esc(mapname)}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Player</th>
+                  <th scope="col">Team</th>
+                  <th scope="col" class="num-col">Score</th>
+                  <th scope="col" class="num-col">Cap</th>
+                  <th scope="col" class="num-col">Ast</th>
+                  <th scope="col" class="num-col">Ret</th>
+                  <th scope="col" class="num-col">FCK</th>
+                  <th scope="col" class="num-col">Def</th>
+                  <th scope="col" class="num-col">Dmg</th>
+                  <th scope="col" class="num-col">Taken</th>
+                  <th scope="col" class="num-col">FC Dmg</th>
+                  <th scope="col" class="num-col">Clr Dmg</th>
+                  <th scope="col" class="num-col">Hold</th>
+                  <th scope="col" class="num-col">Top Spd</th>
+                  <th scope="col" class="num-col">TE</th>
+                  <th scope="col" class="num-col">Pits</th>
+                  <th scope="col" class="num-col">Airs</th>
+                  <th scope="col" class="num-col">Acc</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${ctfAnalyticsRows
+                  .map(
+                    (r) => `<tr>
+                      <th scope="row">${r.playerOid ? `<a href="#view=player&id=${encodeURIComponent(r.playerOid)}">${r.coloredName}</a>` : r.coloredName}</th>
+                      <td style="color:var(--${r.team}-team);font-weight:700;text-transform:uppercase;">${esc(r.team)}</td>
+                      <td class="num-col">${numFmt.format(r.score)}</td>
+                      <td class="num-col">${r.caps}</td>
+                      <td class="num-col">${r.assists}</td>
+                      <td class="num-col">${r.rets}</td>
+                      <td class="num-col">${r.fckil}</td>
+                      <td class="num-col">${r.defends}</td>
+                      <td class="num-col">${numFmt.format(r.dmg)}</td>
+                      <td class="num-col">${numFmt.format(r.tkn)}</td>
+                      <td class="num-col">${numFmt.format(r.fcDmg)}</td>
+                      <td class="num-col">${numFmt.format(r.clrDmg)}</td>
+                      <td class="num-col">${formatDurationMs(r.holdMs)}</td>
+                      <td class="num-col">${numFmt.format(r.topSpd)}</td>
+                      <td class="num-col">${numFmt.format(r.te)}</td>
+                      <td class="num-col">${r.pits}</td>
+                      <td class="num-col">${r.airs}</td>
+                      <td class="num-col">${r.acc !== null && r.acc >= 0 ? `${r.acc}%` : "—"}</td>
+                    </tr>`
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+      }
+
+      /* Spectators & Free Players Footer (Unboxed Inline Items) */
+      const auxPlayers = [...rosters.free, ...rosters.spectator];
+      const auxHtml = auxPlayers.length
+        ? `<div class="match-aux-bar">
+            <span>Spectators / Other (${auxPlayers.length}):</span>
+            ${auxPlayers
+              .map(
+                (sp) =>
+                  `<span class="aux-item">${sp.playerOid ? `<a class="player-name-link" style="font-size:0.78rem;" href="#view=player&id=${encodeURIComponent(sp.playerOid)}">${sp.coloredName}</a>` : sp.coloredName}${sp.actionHtml}</span>`
+              )
+              .join("")}
+          </div>`
+        : "";
+
+      const thumbInner = mapImg
+        ? `<img src="${esc(mapImg)}" alt="" width="76" height="50" loading="lazy" />`
+        : `<span class="map-fallback-label">${esc(mapname.slice(0, 8))}</span>`;
+
+      return `<article class="match-card ${prediction?.isUpset ? "is-upset" : ""}">
+        <div class="match-banner">
+          <div class="match-map-cluster">
+            <div class="map-thumb-box">${thumbInner}</div>
+            <div class="match-info-col">
+              <div class="match-title-row">
+                <button type="button" class="map-filter-btn" data-filter-map="${esc(mapname)}" title="Filter archive by ${esc(mapname)}">${esc(mapname)}</button>
+                <span class="meta-inline-text">${match.is_match ? "Competitive" : "Pub / Scrim"} · ${esc(durationStr)}</span>
+              </div>
+              <div class="match-submeta">
+                <button type="button" class="server-btn" data-filter-server="${esc(rawServer)}" title="Filter by server: ${esc(cleanServer)}">${renderQ3Html(rawServer || cleanServer)}</button>
+                <span>·</span>
+                <time datetime="${tsMs ? new Date(tsMs).toISOString() : ""}" title="${esc(fullTimeTitle)}">${esc(timeDisplay)}</time>
+              </div>
+            </div>
+          </div>
+
+          ${scoreCenterHtml}
+
+          <div class="match-actions">
+            ${buildDemoActionPairHtml(matchDemoUrl, matchWatchLabel, "Watch Match", "is-match-watch")}
+            ${
+              ctfAnalyticsRows.length
+                ? `<button type="button" class="ghost-btn" data-toggle-ctfstats="${analyticsId}" aria-expanded="false" aria-controls="${analyticsId}" title="Toggle detailed CTF telemetry">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                      <path d="M1 11a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3zm5-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V2z"/>
+                    </svg>
+                    <span>CTF Stats</span>
+                  </button>`
+                : ""
+            }
+            <a class="icon-btn" href="#view=match&id=${encodeURIComponent(matchId)}" title="Match permalink" aria-label="Match permalink">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/>
+                <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        ${highlightsHtml}
+
+        <div class="teams-grid">
+          <div class="team-col is-red">
+            ${renderTeamHeader("Red Team")}
+            <ul class="roster-list">
+              ${rosters.red.length ? rosters.red.map(renderRosterRow).join("") : '<li class="roster-row" style="color:var(--text-muted);">No Red players</li>'}
+            </ul>
+          </div>
+          <div class="team-col is-blue">
+            ${renderTeamHeader("Blue Team")}
+            <ul class="roster-list">
+              ${rosters.blue.length ? rosters.blue.map(renderRosterRow).join("") : '<li class="roster-row" style="color:var(--text-muted);">No Blue players</li>'}
+            </ul>
+          </div>
+        </div>
+
+        ${ctfAnalyticsHtml}
+        ${auxHtml}
+      </article>`;
+    }
+
+    /* ========================================================================
+       9. Individual Demos View Renderer (Replaces index.html)
+       ======================================================================== */
+    function renderSingleDemoCard(demo) {
+      const demoId = String(demo._id || "");
+      const filename = demoId.split(/[/\\]/).pop() || demoId;
+      const rawPlayer = String(demo.player || "Recorder");
+      const cleanPlayer = stripQ3(rawPlayer) || "Recorder";
+      const meta = demo.metadata || {};
+      const rawServer = String(meta.sv_hostname || "");
+      const cleanServer = stripQ3(rawServer) || "Server";
+      const tsMs = extractTimestampMs(demo.time_created);
+      const maps = Array.isArray(meta.maps) ? meta.maps : [];
+      const totalMs = maps.reduce((acc, m) => acc + Math.max(0, (m.map_end_time || 0) - (m.map_start_time || 0)), 0);
+      const primaryMap = maps[0]?.mapname || "";
+
+      const demoHref = `getdemo.php?demo=${encodeURIComponent(demoId)}`;
+      const watchLabel = `${cleanPlayer} — ${primaryMap || filename} · ${cleanServer}`;
+
+      const segmentsHtml = maps.length
+        ? `<div class="map-segments-grid">
+            ${maps
+              .map((m) => {
+                const mName = String(m.mapname || "unknown");
+                const mImg = resolveMapImage(mName);
+                const mDur = formatDurationMs((m.map_end_time || 0) - (m.map_start_time || 0));
+                const sc = m.scores || {};
+                const scoreBadge =
+                  "red_score" in sc && "blue_score" in sc
+                    ? `<span style="font-family:var(--font-mono);font-size:0.82rem;font-variant-numeric:tabular-nums;"><span style="color:var(--red-team);font-weight:700;">${sc.red_score}</span><span style="color:var(--text-muted);">–</span><span style="color:var(--blue-team);font-weight:700;">${sc.blue_score}</span></span>`
+                    : "";
+                return `<div class="map-segment-box">
+                  <div style="display:flex;align-items:center;gap:0.6rem;min-inline-size:0;">
+                    <div class="map-thumb-box" style="inline-size:3.25rem;">
+                      ${mImg ? `<img src="${esc(mImg)}" alt="" width="52" height="35" loading="lazy" />` : `<span class="map-fallback-label">${esc(mName.slice(0, 6))}</span>`}
+                    </div>
+                    <div style="min-inline-size:0;">
+                      <button type="button" class="map-filter-btn" style="font-size:0.85rem;" data-filter-map="${esc(mName)}">${esc(mName)}</button>
+                      <div style="font-size:0.75rem;color:var(--text-muted);">${esc(mDur)} ${sc.is_final === 1 ? "· Final" : ""}</div>
+                    </div>
+                  </div>
+                  ${scoreBadge}
+                </div>`;
+              })
+              .join("")}
+          </div>`
+        : "";
+
+      return `<article class="demo-card">
+        <div class="demo-card-top">
+          <div style="display:flex;flex-direction:column;gap:0.2rem;min-inline-size:0;">
+            <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:0.5rem;">
+              <strong style="font-size:0.95rem;">${renderQ3Html(rawPlayer)}</strong>
+              <span class="meta-inline-text">${esc(formatDurationMs(totalMs))}</span>
+              <code style="font-size:0.74rem;color:var(--text-muted);overflow:clip;text-overflow:ellipsis;max-inline-size:24rem;">${esc(filename)}</code>
+            </div>
+            <div class="match-submeta">
+              <button type="button" class="server-btn" data-filter-server="${esc(rawServer)}">${renderQ3Html(rawServer || cleanServer)}</button>
+              <span>·</span>
+              <time datetime="${tsMs ? new Date(tsMs).toISOString() : ""}" title="${tsMs ? esc(fullDateFmt.format(new Date(tsMs))) : ""}">${esc(formatRelativeTime(tsMs))}</time>
+            </div>
+          </div>
+          <div>
+            ${buildDemoActionPairHtml(demoHref, watchLabel, "Play Demo", "is-match-watch")}
+          </div>
+        </div>
+        ${segmentsHtml}
+      </article>`;
+    }
+
+    /* ========================================================================
+       10. Players Leaderboard & Rich Player Profile + Custom HiDPI Elo Chart
+       ======================================================================== */
+    async function renderPlayersDirectoryView() {
+      const tab = state.playerTab;
+      const rpcName =
+        tab === "new" ? "newplayers" : tab === "search" && state.playerQuery ? "searchplayers" : "topplayers";
+      const q = new URLSearchParams({
+        rpc: rpcName,
+        offset: String(state.offset),
+        limit: String(state.limit),
+      });
+      if (rpcName === "searchplayers") q.set("name", state.playerQuery);
+
+      const data = await fetchJson(`playerrpc.py?${q.toString()}`);
+      const players = data.result || [];
+      const total = Number(data.total) || players.length;
+
+      viewContainer.innerHTML = `
+        <section class="filter-card" aria-label="Player search">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem;">
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+              <button type="button" class="btn-secondary ${tab === "top" ? "is-active" : ""}" style="${tab === "top" ? "border-color:var(--accent);background:var(--accent-soft);font-weight:700;" : ""}" data-ptab="top">Top Players</button>
+              <button type="button" class="btn-secondary ${tab === "new" ? "is-active" : ""}" style="${tab === "new" ? "border-color:var(--accent);background:var(--accent-soft);font-weight:700;" : ""}" data-ptab="new">Newest Players</button>
+            </div>
+            <form id="player-dir-form" style="display:flex;gap:0.4rem;flex:1 1 18rem;max-inline-size:28rem;">
+              <label for="player-dir-input" class="sr-only">Search player alias</label>
+              <input id="player-dir-input" class="text-input" type="text" value="${esc(state.playerQuery)}" placeholder="Exact Q3 alias (e.g. ^7endy)…" />
+              <button type="submit" class="btn-primary">Find</button>
+            </form>
+          </div>
+        </section>
+
+        <div class="feed-toolbar">
+          <div class="feed-title-wrap">
+            <h1 class="feed-heading">${rpcName === "newplayers" ? "Newest Indexed Players" : rpcName === "searchplayers" ? "Player Search Results" : "Competitive Player Directory"}</h1>
+            <span class="feed-meta">${numFmt.format(total)} players</span>
+          </div>
+          ${buildPaginationHtml(total, state.offset, state.limit)}
+        </div>
+
+        <div tabindex="0" role="region" aria-labelledby="players-tbl-cap" class="table-wrapper">
+          <table class="data-table is-stackable" style="--label-2:'Elo Rating';--label-3:'Matches';--label-4:'Play Time';--label-5:'First Seen';--label-6:'Profile';">
+            <caption id="players-tbl-cap">Click any player to inspect Elo history, aliases, highlights, and match demos</caption>
+            <thead>
+              <tr>
+                <th scope="col">Player</th>
+                <th scope="col" class="num-col">Rating</th>
+                <th scope="col" class="num-col">Matches</th>
+                <th scope="col" class="num-col">Play Time</th>
+                <th scope="col">First Seen</th>
+                <th scope="col">Profile</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                players.length
+                  ? players
+                      .map((p, i) => {
+                        const oid = p._id?.$oid || "";
+                        const verified = "name" in p;
+                        const displayName = p.name || p.last_name || "Unknown";
+                        const elo =
+                          p.rating && "friendly" in p.rating
+                            ? numFmt.format(Math.floor(p.rating.friendly * 100))
+                            : "—";
+                        const oidTs = oid ? parseInt(oid.slice(0, 8), 16) * 1000 : 0;
+                        const firstMs = p.first_game?.$date || oidTs;
+                        return `<tr>
+                          <th scope="row">
+                            <span style="color:var(--text-muted);font-family:var(--font-mono);margin-inline-end:0.45rem;">#${state.offset + i + 1}</span>
+                            <a href="#view=player&id=${encodeURIComponent(oid)}" style="font-weight:700;color:var(--text-primary);">${renderQ3Html(displayName)}</a>
+                            ${verified ? `<img src="verified.jpg" alt="Verified player" width="14" height="14" style="vertical-align:middle;margin-inline-start:0.3rem;border-radius:50%;" />` : ""}
+                          </th>
+                          <td class="num-col"><strong>${elo}</strong></td>
+                          <td class="num-col">${numFmt.format(p.num_matches || 0)}</td>
+                          <td class="num-col">${esc(formatPlaytimeHours(p.time || 0))}</td>
+                          <td>${firstMs ? esc(fullDateFmt.format(new Date(firstMs))) : "—"}</td>
+                          <td><a class="btn-secondary" style="min-block-size:1.75rem;padding:0.15rem 0.6rem;font-size:0.78rem;" href="#view=player&id=${encodeURIComponent(oid)}">View Profile →</a></td>
+                        </tr>`;
+                      })
+                      .join("")
+                  : `<tr><td colspan="6" style="text-align:center;padding:2rem;">No matching players found. Tip: try including color codes like <code>^7name</code>.</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+        ${buildPaginationHtml(total, state.offset, state.limit)}
+      `;
+
+      viewContainer.querySelectorAll("[data-ptab]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          pushHash({ view: "players", playerTab: btn.dataset.ptab || "top", offset: 0 });
+        });
+      });
+      document.getElementById("player-dir-form")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const qVal = document.getElementById("player-dir-input")?.value.trim() || "";
+        pushHash({
+          view: "players",
+          playerTab: qVal ? "search" : "top",
+          playerQuery: qVal,
+          offset: 0,
+        });
+      });
+    }
+
+    function redrawActiveChartIfAny() {
+      if (state.activeEloChart && typeof state.activeEloChart.draw === "function") {
+        state.activeEloChart.draw();
+      }
+    }
+
+    function mountEloChart(canvas, tooltip, points, getLinearMode) {
+      if (!canvas || !points.length) return null;
+      const sorted = [...points].sort((a, b) => a.t - b.t);
+      let hoverIdx = -1;
+
+      const getCoords = (w, h, pad) => {
+        const linear = getLinearMode();
+        const minT = sorted[0].t;
+        const maxT = Math.max(minT + 1, sorted[sorted.length - 1].t);
+        let minY = Infinity;
+        let maxY = -Infinity;
+        for (const p of sorted) {
+          if (p.elo < minY) minY = p.elo;
+          if (p.elo > maxY) maxY = p.elo;
+        }
+        const padY = Math.max(25, (maxY - minY) * 0.1);
+        minY = Math.floor((minY - padY) / 10) * 10;
+        maxY = Math.ceil((maxY + padY) / 10) * 10;
+
+        const plotW = Math.max(1, w - pad.l - pad.r);
+        const plotH = Math.max(1, h - pad.t - pad.b);
+        const coords = sorted.map((p, i) => {
+          const rx = linear
+            ? (p.t - minT) / (maxT - minT)
+            : sorted.length > 1
+              ? i / (sorted.length - 1)
+              : 0.5;
+          const ry = (p.elo - minY) / Math.max(1, maxY - minY);
+          return {
+            x: pad.l + rx * plotW,
+            y: pad.t + (1 - ry) * plotH,
+            p,
+          };
+        });
+        return { coords, minY, maxY, plotW, plotH };
+      };
+
+      const draw = () => {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.scale(dpr, dpr);
+
+        const cs = getComputedStyle(document.documentElement);
+        const borderCol = cs.getPropertyValue("--border-default").trim() || "#334155";
+        const mutedCol = cs.getPropertyValue("--text-muted").trim() || "#94a3b8";
+        const accentCol = cs.getPropertyValue("--accent").trim() || "#58a6ff";
+
+        const w = rect.width;
+        const h = rect.height;
+        const pad = { l: 48, r: 16, t: 14, b: 26 };
+        ctx.clearRect(0, 0, w, h);
+
+        const { coords, minY, maxY, plotH } = getCoords(w, h, pad);
+
+        /* Gridlines & Y labels */
+        ctx.font = "11px ui-monospace, monospace";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        const steps = 4;
+        for (let s = 0; s <= steps; s++) {
+          const val = Math.round(minY + ((maxY - minY) * s) / steps);
+          const y = pad.t + (1 - s / steps) * plotH;
+          ctx.strokeStyle = borderCol;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(pad.l, y);
+          ctx.lineTo(w - pad.r, y);
+          ctx.stroke();
+          ctx.fillStyle = mutedCol;
+          ctx.fillText(String(val), pad.l - 6, y);
+        }
+
+        /* X-axis start/end dates */
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(new Date(sorted[0].t).toLocaleDateString(), pad.l, h - 18);
+        ctx.textAlign = "right";
+        ctx.fillText(new Date(sorted[sorted.length - 1].t).toLocaleDateString(), w - pad.r, h - 18);
+
+        /* Area Fill + Line */
+        ctx.beginPath();
+        coords.forEach((c, i) => (i === 0 ? ctx.moveTo(c.x, c.y) : ctx.lineTo(c.x, c.y)));
+        ctx.strokeStyle = accentCol;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.lineTo(coords[coords.length - 1].x, pad.t + plotH);
+        ctx.lineTo(coords[0].x, pad.t + plotH);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + plotH);
+        grad.addColorStop(0, "rgba(56, 139, 253, 0.28)");
+        grad.addColorStop(1, "rgba(56, 139, 253, 0.0)");
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        /* Hovered point crosshair */
+        if (hoverIdx >= 0 && coords[hoverIdx]) {
+          const hc = coords[hoverIdx];
+          ctx.strokeStyle = mutedCol;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(hc.x, pad.t);
+          ctx.lineTo(hc.x, pad.t + plotH);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = accentCol;
+          ctx.beginPath();
+          ctx.arc(hc.x, hc.y, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      };
+
+      const findNearest = (clientX) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = clientX - rect.left;
+        const pad = { l: 48, r: 16, t: 14, b: 26 };
+        const { coords } = getCoords(rect.width, rect.height, pad);
+        let best = -1;
+        let bestDist = Infinity;
+        coords.forEach((c, idx) => {
+          const d = Math.abs(c.x - mx);
+          if (d < bestDist) {
+            bestDist = d;
+            best = idx;
+          }
+        });
+        return { best, coords, rect };
+      };
+
+      canvas.addEventListener("pointermove", (e) => {
+        const { best, coords, rect } = findNearest(e.clientX);
+        if (best < 0) return;
+        hoverIdx = best;
+        draw();
+        if (tooltip) {
+          const item = coords[best].p;
+          const deltaStr = item.delta >= 0 ? `+${item.delta}` : `${item.delta}`;
+          tooltip.innerHTML = `<strong>Elo ${item.elo}</strong> (${deltaStr})<br><span style="color:var(--text-muted);">${esc(fullDateFmt.format(new Date(item.t)))}</span><br><span style="font-size:0.7rem;color:var(--accent);">Click to open match →</span>`;
+          tooltip.hidden = false;
+          const left = Math.min(rect.width - 170, Math.max(8, coords[best].x + 10));
+          tooltip.style.insetInlineStart = `${left}px`;
+          tooltip.style.insetBlockStart = `12px`;
+        }
+      });
+
+      canvas.addEventListener("pointerleave", () => {
+        hoverIdx = -1;
+        if (tooltip) tooltip.hidden = true;
+        draw();
+      });
+
+      canvas.addEventListener("click", (e) => {
+        const { best, coords } = findNearest(e.clientX);
+        if (best >= 0 && coords[best]?.p.match) {
+          pushHash({ view: "match", id: coords[best].p.match });
+        }
+      });
+
+      const ro = typeof ResizeObserver === "function" ? new ResizeObserver(draw) : null;
+      if (ro) ro.observe(canvas);
+      draw();
+      return { draw, destroy: () => ro && ro.disconnect() };
+    }
+
+    function inferMapFromDemoPath(pathStr) {
+      const s = String(pathStr || "");
+      const parts = s.split("/");
+      if (parts.length >= 2) {
+        const folder = parts[parts.length - 2];
+        const m = folder.match(/^([A-Za-z0-9_.-]+)\s+\d{4}-\d{2}-\d{2}/);
+        if (m) return m[1];
+      }
+      return "";
+    }
+
+    async function renderPlayerProfileView(playerId) {
+      if (!playerId) {
+        pushHash({ view: "players" });
+        return;
+      }
+
+      const [player, ratings] = await Promise.all([
+        fetchJson(`playerrpc.py?rpc=lookup&id=${encodeURIComponent(playerId)}`),
+        fetchJson(`playerrpc.py?rpc=jratings&id=${encodeURIComponent(playerId)}`).catch(() => []),
+      ]);
+
+      const rawName = player.name || player.last_name || "Unknown Player";
+      const cleanName = stripQ3(rawName) || "Player";
+      const curElo =
+        player.rating && "friendly" in player.rating ? Math.floor(player.rating.friendly * 100) : null;
+
+      const chartPoints = (Array.isArray(ratings) ? ratings : [])
+        .map((r) => {
+          const t = extractTimestampMs(r.time);
+          const startE = Math.floor((r.rating?.start?.friendly || 0) * 100);
+          const endE = Math.floor((r.rating?.updated?.friendly || 0) * 100);
+          return { t, elo: endE, delta: endE - startE, match: r._id?.match || "" };
+        })
+        .filter((p) => p.t > 0 && p.elo > 0);
+
+      const peakElo = chartPoints.reduce((mx, p) => Math.max(mx, p.elo), curElo || 0);
+      const sessions = (player.sessions || []).sort(
+        (a, b) => extractTimestampMs(b.last_game) - extractTimestampMs(a.last_game)
+      );
+
+      viewContainer.innerHTML = `
+        <div class="profile-view" style="display:flex;flex-direction:column;gap:1rem;">
+          <div>
+            <a class="ghost-btn" href="#view=players">← All Players</a>
+          </div>
+
+          <section class="profile-hero">
+            <div>
+              <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+                <h1 style="margin:0;font-size:clamp(1.35rem,1.1rem + 1vw,1.85rem);">${renderQ3Html(rawName)}</h1>
+                ${"name" in player ? `<span style="display:inline-flex;align-items:center;gap:0.3rem;font-size:0.8rem;color:var(--text-muted);"><img src="verified.jpg" alt="" width="15" height="15" style="border-radius:50%;" />Verified</span>` : ""}
+              </div>
+              <div style="font-size:0.8rem;color:var(--text-muted);font-family:var(--font-mono);margin-block-start:0.2rem;">
+                Player ID: ${esc(playerId)}
+              </div>
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <a class="btn-secondary" href="playerrpc.py?rpc=ratings&id=${encodeURIComponent(playerId)}">⬇ Ratings CSV</a>
+              <a class="btn-secondary" href="#view=matches&player=${encodeURIComponent(rawName)}">Search Matches →</a>
+            </div>
+          </section>
+
+          <div class="stat-kpis-grid">
+            <div class="stat-card">
+              <div class="stat-card-label">Current Rating</div>
+              <div class="stat-card-value">${curElo !== null ? numFmt.format(curElo) : "Unrated"}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Peak Rating</div>
+              <div class="stat-card-value">${peakElo > 0 ? numFmt.format(peakElo) : "—"}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Rated Matches</div>
+              <div class="stat-card-value">${numFmt.format(player.num_matches || chartPoints.length)}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Total Games / Time</div>
+              <div class="stat-card-value">${numFmt.format(player.num_games || 0)} <span style="font-size:0.85rem;font-weight:500;color:var(--text-muted);">(${esc(formatPlaytimeHours(sessions.reduce((a, s) => a + (s.time || 0), 0)))})</span></div>
+            </div>
+          </div>
+
+          ${
+            chartPoints.length > 1
+              ? `<section class="chart-panel" aria-label="Elo rating history">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.5rem;">
+                    <strong style="font-size:0.95rem;">Elo Rating Progression (${numFmt.format(chartPoints.length)} matches — click any point to inspect match)</strong>
+                    <label class="check-label" style="min-block-size:1.85rem;padding:0.15rem 0.55rem;font-size:0.78rem;" for="elo-linear-toggle">
+                      <input type="checkbox" id="elo-linear-toggle" class="visually-hidden-fallback" />
+                      <span>Linear Calendar Scale</span>
+                    </label>
+                  </div>
+                  <div class="chart-canvas-wrap">
+                    <canvas id="elo-canvas"></canvas>
+                    <div id="elo-tooltip" class="chart-tooltip" hidden></div>
+                  </div>
+                </section>`
+              : ""
+          }
+
+          <!-- Accessible Sub-Tabs (tabs guide: focusgroup="tablist nomemory" + hidden="until-found") -->
+          <div class="filter-card" style="padding:0.75rem 1rem;">
+            <div class="tablist-scroller" focusgroup="tablist nomemory" aria-label="Player profile sections" id="profile-tablist">
+              <button type="button" id="ptab-matches" aria-selected="true" focusgroupstart>Match History &amp; Highlights</button>
+              <button type="button" id="ptab-aliases">Known Aliases</button>
+            </div>
+
+            <div role="tabpanel" id="ppanel-matches" aria-labelledby="ptab-matches">
+              <div class="tab-panel-inner">
+                <div id="profile-matches-list" class="card-stack">
+                  <div style="color:var(--text-muted);font-size:0.85rem;">Loading session match history…</div>
+                </div>
+                <div style="margin-block-start:0.85rem;display:flex;justify-content:center;">
+                  <button type="button" class="btn-secondary" id="btn-load-more-sessions" hidden>Load More Sessions</button>
+                </div>
+              </div>
+            </div>
+
+            <div role="tabpanel" id="ppanel-aliases" aria-labelledby="ptab-aliases" hidden="until-found">
+              <div class="tab-panel-inner">
+                <div id="profile-aliases-wrap" style="display:flex;flex-wrap:wrap;gap:0.45rem;">
+                  <span style="color:var(--text-muted);font-size:0.85rem;">Aggregating aliases from sessions…</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      /* Mount HiDPI Elo Chart */
+      if (chartPoints.length > 1) {
+        const canvas = document.getElementById("elo-canvas");
+        const tooltip = document.getElementById("elo-tooltip");
+        const linearChk = document.getElementById("elo-linear-toggle");
+        state.activeEloChart = mountEloChart(
+          canvas,
+          tooltip,
+          chartPoints,
+          () => Boolean(linearChk?.checked)
+        );
+        linearChk?.addEventListener("change", () => state.activeEloChart?.draw());
+      }
+
+      /* Wire Accessible Tablist + beforematch sync */
+      const tablist = document.getElementById("profile-tablist");
+      const tabs = tablist ? [...tablist.querySelectorAll("button")] : [];
+      const panels = [
+        document.getElementById("ppanel-matches"),
+        document.getElementById("ppanel-aliases"),
+      ];
+      const selectProfileTab = (idx) => {
+        tabs.forEach((t, i) => {
+          const sel = i === idx;
+          t.setAttribute("aria-selected", sel ? "true" : "false");
+          t.toggleAttribute("focusgroupstart", sel);
+          if (panels[i]) {
+            if (sel) {
+              panels[i].removeAttribute("hidden");
+            } else {
+              panels[i].setAttribute("hidden", "until-found");
+            }
+          }
+        });
+      };
+      tabs.forEach((t, i) => {
+        t.addEventListener("click", () => selectProfileTab(i));
+        t.addEventListener("focus", () => selectProfileTab(i));
+      });
+      panels.forEach((panel, i) => {
+        panel?.addEventListener("beforematch", () => selectProfileTab(i));
+      });
+
+      /* Progressive Session Games Loader */
+      const matchesListEl = document.getElementById("profile-matches-list");
+      const aliasesWrapEl = document.getElementById("profile-aliases-wrap");
+      const moreBtn = document.getElementById("btn-load-more-sessions");
+      const aliasDurationMap = new Map();
+      const allLoadedGames = [];
+      let sessCursor = 0;
+
+      const toFullDemoPath = (rel) => {
+        if (!rel) return "";
+        return rel.startsWith("/cygdrive/U/demos/") ? rel : `/cygdrive/U/demos/${rel}`;
+      };
+
+      const renderProfileGamesAndAliases = () => {
+        allLoadedGames.sort((a, b) => extractTimestampMs(b.time) - extractTimestampMs(a.time));
+        if (matchesListEl) {
+          if (!allLoadedGames.length) {
+            matchesListEl.innerHTML = `<div class="empty-box">No competitive matches recorded in loaded sessions.</div>`;
+          } else {
+            matchesListEl.innerHTML = allLoadedGames
+              .slice(0, 150)
+              .map((m) => {
+                const mId = m._id?.match || "";
+                const ts = extractTimestampMs(m.time);
+                const rStart = m.rating?.rating?.start ? Math.floor(m.rating.rating.start.friendly * 100) : null;
+                const rEnd = m.rating?.rating?.updated ? Math.floor(m.rating.rating.updated.friendly * 100) : null;
+                const delta = rStart !== null && rEnd !== null ? rEnd - rStart : null;
+
+                const firstGame = (m.games || [])[0] || {};
+                const primaryTeam = (firstGame.teams || [])[0]?.team || "";
+                const redS = m.score?.red;
+                const blueS = m.score?.blue;
+                const mapGuess = inferMapFromDemoPath((firstGame.demos || [])[0]);
+                const mapImg = resolveMapImage(mapGuess);
+
+                let outcomeBadge = "";
+                if (typeof redS === "number" && typeof blueS === "number") {
+                  const won =
+                    (primaryTeam === "RED" && redS > blueS) ||
+                    (primaryTeam === "BLUE" && blueS > redS);
+                  const tied = redS === blueS;
+                  outcomeBadge = `<span style="font-family:var(--font-mono);font-size:0.8rem;font-variant-numeric:tabular-nums;color:${tied ? "var(--text-secondary)" : won ? "var(--pos)" : "var(--neg)"};font-weight:700;">${tied ? "DRAW" : won ? "WIN" : "LOSS"} ${redS}–${blueS}</span>`;
+                }
+
+                const povButtons = [];
+                const clipButtons = [];
+                for (const g of m.games || []) {
+                  (g.demos || []).forEach((dPath, dIdx) => {
+                    const full = toFullDemoPath(dPath);
+                    if (full) {
+                      povButtons.push(
+                        buildDemoActionPairHtml(
+                          `getdemo.php?demo=${encodeURIComponent(full)}`,
+                          `${cleanName} — ${mapGuess || mId}`,
+                          (g.demos || []).length > 1 ? `POV ${dIdx + 1}` : "POV",
+                          ""
+                        )
+                      );
+                    }
+                  });
+                  for (const shot of g.ns?.shots || []) {
+                    const dIdx = typeof shot.d === "number" && g.demos?.[shot.d] ? shot.d : 0;
+                    const full = toFullDemoPath(g.demos?.[dIdx]);
+                    if (full) {
+                      const clk = formatClipClock(shot.time);
+                      const s10 = Math.round((shot.score - 1) * 10 + 1);
+                      const url = `trimdemo.php?demo=${encodeURIComponent(full)}&time=${shot.time}&before=9000&after=5000&prefix=${encodeURIComponent(Math.round(shot.score * 1000) / 1000 + " ")}`;
+                      clipButtons.push(
+                        buildDemoActionPairHtml(url, `${cleanName} · NS ${s10}/10 @ ${clk}`, `★ NS ${s10}/10 @ ${clk}`, "is-clip")
+                      );
+                    }
+                  }
+                  for (const bm of g.bookmarks || []) {
+                    const dIdx = typeof bm.d === "number" && g.demos?.[bm.d] ? bm.d : 0;
+                    const full = toFullDemoPath(g.demos?.[dIdx]);
+                    if (full) {
+                      const clk = formatClipClock(bm.time);
+                      const mark = bm.mark || "bm";
+                      const url = `trimdemo.php?demo=${encodeURIComponent(full)}&time=${bm.time}&before=13000&after=5000&prefix=${encodeURIComponent(mark + " ")}`;
+                      clipButtons.push(
+                        buildDemoActionPairHtml(url, `${cleanName} · Bookmark @ ${clk}`, `🔖 ${mark} @ ${clk}`, "is-clip")
+                      );
+                    }
+                  }
+                }
+
+                return `<article class="demo-card" style="padding:0.7rem 0.9rem;">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.65rem;">
+                    <div style="display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap;">
+                      ${
+                        mapGuess
+                          ? `<div class="map-thumb-box" style="inline-size:3.2rem;">${mapImg ? `<img src="${esc(mapImg)}" alt="" width="52" height="35" loading="lazy" />` : `<span class="map-fallback-label">${esc(mapGuess.slice(0, 6))}</span>`}</div>`
+                          : ""
+                      }
+                      <div>
+                        <div style="display:flex;align-items:baseline;gap:0.6rem;flex-wrap:wrap;">
+                          <a href="#view=match&id=${encodeURIComponent(mId)}" style="font-weight:700;font-family:var(--font-mono);color:var(--text-primary);">${esc(mapGuess || `Match ${mId}`)}</a>
+                          ${outcomeBadge}
+                          ${
+                            rEnd !== null && delta !== null
+                              ? `<span style="font-family:var(--font-mono);font-size:0.78rem;font-variant-numeric:tabular-nums;color:var(--text-secondary);">${rEnd} <span class="elo-delta ${delta > 0 ? "is-pos" : delta < 0 ? "is-neg" : ""}">${delta > 0 ? `+${delta}` : delta}</span></span>`
+                              : ""
+                          }
+                        </div>
+                        <div style="font-size:0.76rem;color:var(--text-muted);">${ts ? esc(fullDateFmt.format(new Date(ts))) : ""} · ID ${esc(mId)}</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:0.35rem;align-items:center;">
+                      ${povButtons.join("")}
+                      <a class="ghost-btn" href="#view=match&id=${encodeURIComponent(mId)}">Scoreboard →</a>
+                    </div>
+                  </div>
+                  ${clipButtons.length ? `<div style="display:flex;flex-wrap:wrap;gap:0.35rem;">${clipButtons.join("")}</div>` : ""}
+                </article>`;
+              })
+              .join("");
+          }
+        }
+
+        if (aliasesWrapEl) {
+          const sortedAliases = [...aliasDurationMap.entries()].sort((a, b) => b[1] - a[1]);
+          aliasesWrapEl.innerHTML = sortedAliases.length
+            ? sortedAliases
+                .map(
+                  ([raw, dur]) =>
+                    `<span style="display:inline-flex;align-items:baseline;gap:0.35rem;padding:0.2rem 0.55rem;border-block-end:1px solid var(--border-default);font-size:0.84rem;">${renderQ3Html(raw)} <span style="color:var(--text-muted);font-size:0.72rem;font-variant-numeric:tabular-nums;">${esc(formatPlaytimeHours(dur))}</span></span>`
+                )
+                .join("")
+            : `<span style="color:var(--text-muted);">No alias records found.</span>`;
+        }
+      };
+
+      const loadNextSessionBatch = async (batchCount = 4) => {
+        const slice = sessions.slice(sessCursor, sessCursor + batchCount);
+        sessCursor += slice.length;
+        await Promise.all(
+          slice.map(async (sess) => {
+            try {
+              const games = await fetchJson(
+                `playerrpc.py?rpc=sessiongames&id=${encodeURIComponent(JSON.stringify(sess._id))}&limit=150&match=true`
+              );
+              if (Array.isArray(games)) {
+                for (const m of games) {
+                  allLoadedGames.push(m);
+                  for (const g of m.games || []) {
+                    for (const nm of g.names || []) {
+                      const dur = Math.max(0, (nm.end || 0) - (nm.start || 0));
+                      aliasDurationMap.set(nm.name, (aliasDurationMap.get(nm.name) || 0) + dur);
+                    }
+                  }
+                }
+              }
+            } catch (_) {}
+          })
+        );
+        renderProfileGamesAndAliases();
+        if (moreBtn) {
+          moreBtn.hidden = sessCursor >= sessions.length;
+          moreBtn.textContent = `Load Older Sessions (${sessions.length - sessCursor} remaining)`;
+        }
+      };
+
+      moreBtn?.addEventListener("click", () => loadNextSessionBatch(6));
+      await loadNextSessionBatch(4);
+    }
+
+    /* ========================================================================
+       11. Bulk Archive Bundle View (Replaces download.html)
+       ======================================================================== */
+    function renderBundleView() {
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 3600 * 1000);
+      const toLocalInput = (d) => {
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      };
+
+      viewContainer.innerHTML = `
+        <section class="filter-card" style="max-inline-size:44rem;margin-inline:auto;padding:1.5rem;">
+          <h1 class="feed-heading">Bulk Demo Archive Bundle</h1>
+          <p style="margin:0;color:var(--text-secondary);font-size:0.9rem;">
+            Download a tar/bundle of all demos recorded in the archive within a specific date and time window.
+          </p>
+
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-block:0.25rem;">
+            <button type="button" class="chip" data-range-hrs="6">Last 6 Hours</button>
+            <button type="button" class="chip" data-range-hrs="24">Last 24 Hours</button>
+            <button type="button" class="chip" data-range-hrs="72">Last 3 Days</button>
+            <button type="button" class="chip" data-range-hrs="168">Last 7 Days</button>
+          </div>
+
+          <form id="bundle-form" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr));gap:0.85rem;margin-block-start:0.25rem;">
+            <div class="field-group">
+              <label class="field-label" for="bundle-start">Start Date &amp; Time</label>
+              <input class="text-input" type="datetime-local" id="bundle-start" value="${toLocalInput(yesterday)}" required />
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="bundle-end">End Date &amp; Time</label>
+              <input class="text-input" type="datetime-local" id="bundle-end" value="${toLocalInput(now)}" required />
+            </div>
+            <div style="grid-column:1 / -1;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem;margin-block-start:0.25rem;">
+              <span id="bundle-epoch-preview" style="font-family:var(--font-mono);font-size:0.76rem;color:var(--text-muted);"></span>
+              <button type="submit" class="btn-primary">⬇ Download Archive Bundle</button>
+            </div>
+          </form>
+        </section>
+      `;
+
+      const startIn = document.getElementById("bundle-start");
+      const endIn = document.getElementById("bundle-end");
+      const preview = document.getElementById("bundle-epoch-preview");
+
+      const syncEpoch = () => {
+        const s = Math.floor(new Date(startIn.value).getTime() / 1000);
+        const e = Math.floor(new Date(endIn.value).getTime() / 1000);
+        if (Number.isFinite(s) && Number.isFinite(e)) {
+          preview.textContent = `Unix window: ${s} → ${e}`;
+        }
+      };
+      startIn?.addEventListener("change", syncEpoch);
+      endIn?.addEventListener("change", syncEpoch);
+      syncEpoch();
+
+      viewContainer.querySelectorAll("[data-range-hrs]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const hrs = Number(btn.dataset.rangeHrs) || 24;
+          const end = new Date();
+          const start = new Date(end.getTime() - hrs * 3600 * 1000);
+          startIn.value = toLocalInput(start);
+          endIn.value = toLocalInput(end);
+          syncEpoch();
+        });
+      });
+
+      document.getElementById("bundle-form")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const s = Math.floor(new Date(startIn.value).getTime() / 1000);
+        const end = Math.floor(new Date(endIn.value).getTime() / 1000);
+        if (!Number.isFinite(s) || !Number.isFinite(end) || end <= s) return;
+        window.location.href = `minrpc.py?rpc=bundle&start=${s}&end=${end}`;
+      });
+    }
+
+    /* ========================================================================
+       12. Master View Dispatcher
+       ======================================================================== */
+    let renderToken = 0;
+
+    async function renderCurrentView() {
+      const myToken = ++renderToken;
+      if (state.activeEloChart) {
+        state.activeEloChart.destroy?.();
+        state.activeEloChart = null;
+      }
+
+      parseHash();
+      syncHeaderNav();
+
+      if (state.view === "bundle") {
+        renderBundleView();
+        return;
+      }
+
+      viewContainer.innerHTML = `
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card" style="margin-block-start:1rem;"></div>
+      `;
+
+      try {
+        if (state.view === "players") {
+          await renderPlayersDirectoryView();
+          return;
+        }
+
+        if (state.view === "player") {
+          await renderPlayerProfileView(state.id);
+          return;
+        }
+
+        if (state.view === "match") {
+          const data = await fetchJson(`minrpc.py?rpc=lookupmatch&id=${encodeURIComponent(state.id)}`);
+          if (myToken !== renderToken) return;
+          const list = data.result || [];
+          viewContainer.innerHTML = `
+            <div class="feed-toolbar">
+              <div class="feed-title-wrap">
+                <a class="ghost-btn" href="#view=matches">← Recent Matches</a>
+                <h1 class="feed-heading">Match Report ${esc(state.id)}</h1>
+              </div>
+            </div>
+            <div class="card-stack">
+              ${list.length ? list.map((m, i) => renderMatchCard(m, i, false)).join("") : `<div class="empty-box">Match <code>${esc(state.id)}</code> was not found.</div>`}
+            </div>
+          `;
+          return;
+        }
+
+        if (state.view === "demos") {
+          const isFiltered = Boolean(state.player || state.map || state.server || state.before || state.matchOnly);
+          const q = new URLSearchParams({
+            rpc: isFiltered ? "search" : "recentdemos",
+            offset: String(state.offset),
+            limit: String(state.limit),
+          });
+          if (state.player) q.set("player", state.player);
+          if (state.map) q.set("map", state.map);
+          if (state.server) q.set("server", state.server);
+          if (state.before) {
+            const endOfDay = Math.floor(new Date(state.before + "T23:59:59").getTime() / 1000);
+            if (Number.isFinite(endOfDay)) q.set("before", String(endOfDay));
+          }
+          if (state.matchOnly) q.set("match", "true");
+
+          const data = await fetchJson(`minrpc.py?${q.toString()}`);
+          if (myToken !== renderToken) return;
+          const demos = data.result || [];
+          const total = Number(data.total) || demos.length;
+
+          viewContainer.innerHTML = `
+            <div class="feed-toolbar">
+              <div class="feed-title-wrap">
+                <h1 class="feed-heading">${isFiltered ? "Filtered Demo Recordings" : "Recent Demo Recordings"}</h1>
+                <span class="feed-meta">${numFmt.format(total)} demos</span>
+              </div>
+              ${buildPaginationHtml(total, state.offset, state.limit)}
+            </div>
+            <div class="card-stack">
+              ${demos.length ? demos.map(renderSingleDemoCard).join("") : `<div class="empty-box">No demo recordings matched your filters. Check the suggested Q3 color-code chips above or reset filters.</div>`}
+            </div>
+            ${buildPaginationHtml(total, state.offset, state.limit)}
+          `;
+          return;
+        }
+
+        /* Default: Competitive Matches View */
+        const isFiltered = Boolean(state.player || state.map || state.server || state.before || !state.matchOnly);
+        const q = new URLSearchParams({
+          rpc: isFiltered ? "searchmatches" : "recentmatches",
+          offset: String(state.offset),
+          limit: String(state.limit),
+        });
+        if (state.player) q.set("player", state.player);
+        if (state.map) q.set("map", state.map);
+        if (state.server) q.set("server", state.server);
+        if (state.before) {
+          const endOfDay = Math.floor(new Date(state.before + "T23:59:59").getTime() / 1000);
+          if (Number.isFinite(endOfDay)) q.set("before", String(endOfDay));
+        }
+        q.set("match", String(Boolean(state.matchOnly)));
+
+        const data = await fetchJson(`minrpc.py?${q.toString()}`);
+        if (myToken !== renderToken) return;
+        const matches = data.result || [];
+        const total = Number(data.total) || matches.length;
+
+        viewContainer.innerHTML = `
+          <div class="feed-toolbar">
+            <div class="feed-title-wrap">
+              <h1 class="feed-heading">${isFiltered ? "Match Search Results" : "Recent Competitive Matches"}</h1>
+              <span class="feed-meta">${numFmt.format(total)} matches</span>
+            </div>
+            ${buildPaginationHtml(total, state.offset, state.limit)}
+          </div>
+          <div class="card-stack">
+            ${
+              matches.length
+                ? matches.map((m, i) => renderMatchCard(m, i, !isFiltered)).join("")
+                : `<div class="empty-box">No matches found for the current filters. Try clicking a Q3 color variant chip above or clearing filters.</div>`
+            }
+          </div>
+          ${buildPaginationHtml(total, state.offset, state.limit)}
+        `;
+      } catch (err) {
+        if (myToken !== renderToken) return;
+        viewContainer.innerHTML = `
+          <div class="empty-box">
+            <strong>Unable to load archive data</strong>
+            <p style="margin:0.4rem 0 0;font-size:0.85rem;color:var(--text-muted);">${esc(err?.message || String(err))}</p>
+          </div>
+        `;
+      }
+    }
+
+    /* Close mobile popover menu on navigation link click */
+    siteMenu?.addEventListener("click", (e) => {
+      if (e.target.closest("a") && siteMenu.matches(":is(:popover-open, .\\:popover-open)")) {
+        try { siteMenu.hidePopover(); } catch (_) {}
+      }
+    });
+
+    window.addEventListener("hashchange", renderCurrentView);
+
+    /* Boot: load counter + initial view + background autocomplete index */
+    fetchJson("minrpc.py?rpc=numdemos")
+      .then((d) => {
+        const el = document.getElementById("numdemos-pill");
+        if (el && d && d.numdemos) {
+          el.textContent = `${numFmt.format(d.numdemos)} demos`;
+        }
+      })
+      .catch(() => {});
+
+    renderCurrentView();
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(() => loadAutocompleteData(), { timeout: 1500 });
+    } else {
+      setTimeout(loadAutocompleteData, 400);
+    }
+  </script>
+</body>
+</html>
