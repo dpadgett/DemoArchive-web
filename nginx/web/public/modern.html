@@ -304,6 +304,10 @@
       outline-offset: 2px;
     }
 
+    [hidden]:not([hidden="until-found"]) {
+      display: none !important;
+    }
+
     .sr-only {
       position: absolute !important;
       clip-path: inset(50%) !important;
@@ -1486,7 +1490,7 @@
       border-inline-end: 1px solid var(--border-default);
     }
 
-    /* Tier 1 (Wide >= 35rem): Full 10-col CTF / 7-col Basic */
+    /* Tier 1 (Wide >= 35rem): Full 10-col CTF / 9-col Event CTF (no Dmg) / 7-col Basic */
     .roster-grid-ctf {
       display: grid;
       grid-template-columns:
@@ -1504,6 +1508,22 @@
       column-gap: 0.35rem;
     }
 
+    .roster-grid-ctf-nodmg {
+      display: grid;
+      grid-template-columns:
+        minmax(4.75rem, 1fr)
+        2.65rem  /* Elo */
+        2.05rem  /* Delta */
+        1.65rem  /* Cap */
+        1.75rem  /* Ret */
+        2.95rem  /* Score */
+        2.05rem  /* Min */
+        2.0rem   /* Ping */
+        6.15rem; /* Demo Actions */
+      align-items: center;
+      column-gap: 0.36rem;
+    }
+
     .roster-grid-basic {
       display: grid;
       grid-template-columns:
@@ -1518,7 +1538,7 @@
       column-gap: 0.4rem;
     }
 
-    /* Tier 2 (Medium 25rem..35rem): Hide Cap/Ret/Min */
+    /* Tier 2 (Medium 25rem..35rem): Hide Min (+ Cap/Ret when Dmg is present; keep Cap/Ret when no Dmg) */
     @container team-col (inline-size < 35rem) {
       .roster-grid-ctf {
         grid-template-columns:
@@ -1531,6 +1551,18 @@
           5.65rem; /* Demo */
         column-gap: 0.3rem;
       }
+      .roster-grid-ctf-nodmg {
+        grid-template-columns:
+          minmax(4rem, 1fr)
+          2.5rem   /* Elo */
+          1.95rem  /* Delta */
+          1.55rem  /* Cap */
+          1.65rem  /* Ret */
+          2.75rem  /* Score */
+          1.95rem  /* Ping */
+          5.65rem; /* Demo */
+        column-gap: 0.28rem;
+      }
       .roster-grid-basic {
         grid-template-columns:
           minmax(4.5rem, 1fr)
@@ -1541,7 +1573,8 @@
           5.65rem; /* Demo */
         column-gap: 0.3rem;
       }
-      .col-opt-md {
+      .col-opt-md,
+      .roster-grid-ctf .col-opt-capret {
         display: none;
       }
       .roster-row .dl-link {
@@ -1554,7 +1587,7 @@
       }
     }
 
-    /* Tier 3 (Phone Portrait < 25rem, e.g. 360px–390px): Player | Elo | Score | Dmg | Demo */
+    /* Tier 3 (Phone Portrait < 25rem, e.g. 360px–390px): Player | Elo | Score | (Dmg) | Demo */
     @container team-col (inline-size < 25rem) {
       .team-col-header,
       .roster-row {
@@ -1569,6 +1602,7 @@
           5.3rem;  /* Demo */
         column-gap: 0.26rem;
       }
+      .roster-grid-ctf-nodmg,
       .roster-grid-basic {
         grid-template-columns:
           minmax(4rem, 1fr)
@@ -1577,11 +1611,23 @@
           5.3rem;  /* Demo */
         column-gap: 0.3rem;
       }
-      .col-opt-sm {
+      .col-opt-sm,
+      .col-opt-capret {
         display: none;
       }
       .roster-row .demo-action-pair {
         gap: 0.16rem;
+      }
+      .roster-row .pos-badge {
+        inline-size: 1.08rem;
+        block-size: 1.08rem;
+      }
+      .roster-row .pos-badge svg {
+        inline-size: 0.74rem;
+        block-size: 0.74rem;
+      }
+      .roster-row .player-ident {
+        gap: 0.26rem;
       }
       .roster-row .dl-link {
         min-inline-size: 1.5rem;
@@ -1668,6 +1714,99 @@
       display: flex;
       align-items: safe center;
       gap: 0.35rem;
+    }
+
+    /* CTF Position Icon Badges (Offense / Chase / Base / Mid) */
+    .pos-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      inline-size: 1.22rem;
+      block-size: 1.22rem;
+      border-radius: 0.28rem;
+      border: 1px solid currentColor;
+      flex: none;
+      cursor: help;
+      user-select: none;
+    }
+
+    .pos-badge svg,
+    .ctf-pos-pill svg {
+      inline-size: 0.82rem;
+      block-size: 0.82rem;
+      flex: none;
+      pointer-events: none;
+    }
+
+    .pos-badge.is-inferred,
+    .ctf-pos-pill.is-inferred {
+      border-style: dashed;
+    }
+
+    .pos-badge.is-offense,
+    .ctf-pos-pill.is-offense {
+      color: var(--q3-2);
+      background-color: rgba(34, 197, 94, 0.11);
+    }
+
+    .pos-badge.is-chase,
+    .ctf-pos-pill.is-chase {
+      color: var(--q3-6);
+      background-color: rgba(217, 70, 239, 0.11);
+    }
+
+    .pos-badge.is-base,
+    .ctf-pos-pill.is-base {
+      color: var(--q3-5);
+      background-color: rgba(6, 182, 212, 0.11);
+    }
+
+    .pos-badge.is-mid,
+    .ctf-pos-pill.is-mid {
+      color: var(--q3-3);
+      background-color: rgba(234, 179, 8, 0.12);
+    }
+
+    @supports (color: color-mix(in oklab, red, transparent)) {
+      .pos-badge.is-offense,
+      .ctf-pos-pill.is-offense {
+        background-color: color-mix(in oklab, var(--q3-2) 13%, transparent);
+      }
+      .pos-badge.is-chase,
+      .ctf-pos-pill.is-chase {
+        background-color: color-mix(in oklab, var(--q3-6) 13%, transparent);
+      }
+      .pos-badge.is-base,
+      .ctf-pos-pill.is-base {
+        background-color: color-mix(in oklab, var(--q3-5) 13%, transparent);
+      }
+      .pos-badge.is-mid,
+      .ctf-pos-pill.is-mid {
+        background-color: color-mix(in oklab, var(--q3-3) 14%, transparent);
+      }
+    }
+
+    .ctf-pos-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.26rem;
+      padding: 0.14rem 0.4rem;
+      border-radius: 0.28rem;
+      border: 1px solid currentColor;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      cursor: help;
+    }
+
+    .ctf-pos-pill-lbl {
+      text-box: trim-both cap alphabetic;
+    }
+
+    .ctf-pos-swap {
+      opacity: 0.76;
+      font-weight: 500;
     }
 
     .player-name-link {
@@ -1878,12 +2017,23 @@
     .table-wrapper {
       overflow: auto;
       max-inline-size: 100%;
-      max-block-size: min(36rem, 78dvh);
       container-type: inline-size;
       border: 1px solid var(--border-default);
       border-radius: var(--radius-md);
       background-color: var(--bg-surface);
-      scrollbar-gutter: stable;
+    }
+
+    .table-wrapper.is-page-table {
+      overflow-x: auto;
+      overflow-y: visible;
+    }
+
+    @media (max-width: 42em) {
+      .table-wrapper.is-page-table {
+        overflow: visible;
+        border: 0;
+        background: transparent;
+      }
     }
 
     .data-table {
@@ -1948,6 +2098,7 @@
 
     @container (width < 40rem) {
       .data-table.is-stackable,
+      .data-table.is-stackable caption,
       .data-table.is-stackable thead,
       .data-table.is-stackable tbody,
       .data-table.is-stackable tr,
@@ -1956,18 +2107,25 @@
         display: block;
         white-space: normal;
       }
+      .data-table.is-stackable caption {
+        inline-size: 100%;
+        box-sizing: border-box;
+      }
       .data-table.is-stackable thead {
         display: none;
       }
       .data-table.is-stackable tbody tr {
-        margin: 0.65rem;
+        margin: 0 0 0.65rem;
         border: 1px solid var(--border-default);
         border-radius: var(--radius-md);
+        background-color: var(--bg-surface);
         overflow: clip;
       }
+      .data-table.is-stackable tbody tr:last-child {
+        margin-block-end: 0;
+      }
       .data-table.is-stackable tbody th {
-        position: sticky;
-        inset-block-start: 0;
+        position: static;
         background-color: var(--bg-elevated);
         border-inline-end: 0;
       }
@@ -1983,6 +2141,73 @@
       .data-table.is-stackable td:nth-child(4)::before { content: var(--label-4) ": "; color: var(--text-muted); font-family: var(--font-sans); }
       .data-table.is-stackable td:nth-child(5)::before { content: var(--label-5) ": "; color: var(--text-muted); font-family: var(--font-sans); }
       .data-table.is-stackable td:nth-child(6)::before { content: var(--label-6) ": "; color: var(--text-muted); font-family: var(--font-sans); }
+      .data-table.is-stackable td:nth-child(7)::before { content: var(--label-7) ": "; color: var(--text-muted); font-family: var(--font-sans); }
+      .data-table.is-stackable td:nth-child(8)::before { content: var(--label-8) ": "; color: var(--text-muted); font-family: var(--font-sans); }
+    }
+
+    /* Elo Mode Segmented Toggle & Profile Role Breakdown */
+    .elo-mode-toggle {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-subtle);
+      padding: 0.14rem;
+      gap: 0.14rem;
+    }
+
+    .elo-mode-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font: inherit;
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 0.24rem 0.62rem;
+      min-block-size: 1.68rem;
+      border-radius: calc(var(--radius-md) - 2px);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.32rem;
+      white-space: nowrap;
+    }
+
+    .elo-mode-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .elo-mode-btn[aria-pressed="true"] {
+      background-color: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .elo-mode-btn[aria-pressed="true"]::before {
+      content: "";
+      inline-size: 0.38rem;
+      block-size: 0.38rem;
+      border-radius: 50%;
+      background-color: var(--accent);
+      flex: none;
+    }
+
+    .role-kpis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 12.5rem), 1fr));
+      gap: 0.65rem;
+    }
+
+    .role-kpi-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-surface);
     }
 
     /* ==========================================================================
@@ -2466,6 +2691,15 @@
       .match-card, .demo-card, .filter-card {
         border: 1px solid CanvasText;
       }
+      .pos-badge, .ctf-pos-pill {
+        border-color: CanvasText;
+        background: Canvas;
+        color: CanvasText;
+      }
+      .elo-mode-btn[aria-pressed="true"] {
+        border-color: Highlight;
+        color: Highlight;
+      }
       .site-menu a[aria-current="page"]::after,
       .tablist-scroller [aria-selected="true"]::after {
         border-color: Highlight;
@@ -2474,6 +2708,26 @@
   </style>
 </head>
 <body>
+  <!-- Reusable CTF Position SVG Sprite (Offense, Chase, Base, Mid) -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="jk-pos-offense" viewBox="0 0 16 16">
+      <path d="M3.25 2v12.25" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      <path d="M3.75 2.5h8.75l-2.3 3.25 2.3 3.25H3.75z" fill="currentColor" fill-opacity="0.24" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="jk-pos-chase" viewBox="0 0 16 16">
+      <circle cx="8" cy="8" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M8 1.25v2.4M8 12.35v2.4M1.25 8h2.4M12.35 8h2.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="8" cy="8" r="1.45" fill="currentColor"/>
+    </symbol>
+    <symbol id="jk-pos-base" viewBox="0 0 16 16">
+      <path d="M8 1.65 13.4 3.8v4.15c0 3.45-2.3 5.55-5.4 6.55-3.1-1-5.4-3.1-5.4-6.55V3.8L8 1.65z" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M8 4.4v6.6M5.6 7.3h4.8" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="jk-pos-mid" viewBox="0 0 16 16">
+      <path d="M8 3.6 11.4 8 8 12.4 4.6 8 8 3.6z" fill="currentColor" fill-opacity="0.22" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+      <path d="M1.3 8h2.2M12.5 8h2.2M2.8 6.3 1.1 8l1.7 1.7M13.2 6.3 14.9 8l-1.7 1.7" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </svg>
   <!-- Compact Sticky Site Header -->
   <header class="site-header" id="site-header">
     <div class="header-inner" id="header-inner">
@@ -2956,6 +3210,17 @@
       return relTimeFmt.format(Math.round(diffSec / 86400), "day");
     }
 
+    function parseHoldDurationMs(val) {
+      if (typeof val === "number") return Math.max(0, val);
+      if (typeof val !== "string" || !val.trim()) return 0;
+      const s = val.trim();
+      const m1 = s.match(/^(?:(\d+)m)?(\d+)s$/i);
+      if (m1) return (Number(m1[1] || 0) * 60 + Number(m1[2] || 0)) * 1000;
+      const m2 = s.match(/^(\d+):(\d+)$/);
+      if (m2) return (Number(m2[1]) * 60 + Number(m2[2])) * 1000;
+      return Number(s) || 0;
+    }
+
     function formatDurationMs(ms) {
       const totalSec = Math.max(0, Math.round((Number(ms) || 0) / 1000));
       if (!totalSec) return "—";
@@ -3344,7 +3609,10 @@
       matchOnly: true,
       id: "",
       playerTab: "top", // top | new | search
+      playerSort: "pos_ping", // pos_ping | offense | chase | base | matches
+      playerPool: "active", // active | alltime | all
       playerQuery: "",
+      eloMode: "pos_ping",
       canMerge: false,
       activeEloChart: null,
       adminTabIdx: 0,
@@ -3416,11 +3684,17 @@
       }
       state.id = params.get("id") || "";
       state.playerTab = params.get("tab") || "top";
+      const rawSort = params.get("sort") || "pos_ping";
+      state.playerSort = rawSort === "classic" ? "pos_ping" : rawSort;
+      const rawPool = params.get("pool") || "active";
+      state.playerPool = ["active", "alltime", "all"].includes(rawPool) ? rawPool : "active";
       state.playerQuery = params.get("q") || "";
+      state.eloMode = "pos_ping";
     }
 
     function pushHash(overrides = {}) {
       Object.assign(state, overrides);
+      state.eloMode = "pos_ping";
       const p = new URLSearchParams();
       p.set("view", state.view);
       if (state.view === "match" || state.view === "player") {
@@ -3434,6 +3708,8 @@
         if (state.offset > 0) p.set("offset", String(state.offset));
       } else if (state.view === "players") {
         if (state.playerTab !== "top") p.set("tab", state.playerTab);
+        if (state.playerSort && state.playerSort !== "pos_ping") p.set("sort", state.playerSort);
+        if (state.playerPool && state.playerPool !== "active") p.set("pool", state.playerPool);
         if (state.playerQuery) p.set("q", state.playerQuery);
         if (state.offset > 0) p.set("offset", String(state.offset));
       }
@@ -3724,30 +4000,7 @@
       return 0.5 * (1.0 + erfApprox(z / Math.SQRT2));
     }
 
-    function computeMatchPrediction(redEntries, blueEntries, redScore, blueScore) {
-      const sumWr = redEntries.reduce((s, e) => s + e.w, 0);
-      const sumWb = blueEntries.reduce((s, e) => s + e.w, 0);
-      if (sumWr < 2.5 || sumWb < 2.5 || Math.abs(sumWr - sumWb) > 0.65) {
-        return null;
-      }
-      const targetTeamSize = Math.max(3, Math.round((sumWr + sumWb) / 2));
-      const normR = redEntries.map((e) => ({ mu: e.mu, sigma: e.sigma, w: (e.w * targetTeamSize) / sumWr }));
-      const normB = blueEntries.map((e) => ({ mu: e.mu, sigma: e.sigma, w: (e.w * targetTeamSize) / sumWb }));
-
-      const deltaMu =
-        normR.reduce((s, e) => s + e.w * e.mu, 0) -
-        normB.reduce((s, e) => s + e.w * e.mu, 0);
-      const sumSigmaSq =
-        normR.reduce((s, e) => s + (e.w * e.sigma) ** 2, 0) +
-        normB.reduce((s, e) => s + (e.w * e.sigma) ** 2, 0);
-      const sumBetaSq =
-        (normR.reduce((s, e) => s + e.w ** 2, 0) + normB.reduce((s, e) => s + e.w ** 2, 0)) *
-        TRUESKILL_BETA *
-        TRUESKILL_BETA;
-
-      const denom = Math.sqrt(sumBetaSq + sumSigmaSq);
-      if (!(denom > 0)) return null;
-      const redProb = normalCdf(deltaMu / denom);
+    function formatPredictionVerdict(redProb, redScore, blueScore) {
       const blueProb = 1.0 - redProb;
       const redPct = Math.round(redProb * 100);
       const bluePct = 100 - redPct;
@@ -3820,6 +4073,34 @@
       };
     }
 
+    function computeMatchPrediction(redEntries, blueEntries, redScore, blueScore, betaScale = 1.0) {
+      const sumWr = redEntries.reduce((s, e) => s + e.w, 0);
+      const sumWb = blueEntries.reduce((s, e) => s + e.w, 0);
+      if (sumWr < 2.5 || sumWb < 2.5 || Math.abs(sumWr - sumWb) > 0.65) {
+        return null;
+      }
+      const targetTeamSize = Math.max(3, Math.round((sumWr + sumWb) / 2));
+      const normR = redEntries.map((e) => ({ mu: e.mu, sigma: e.sigma, w: (e.w * targetTeamSize) / sumWr }));
+      const normB = blueEntries.map((e) => ({ mu: e.mu, sigma: e.sigma, w: (e.w * targetTeamSize) / sumWb }));
+
+      const deltaMu =
+        normR.reduce((s, e) => s + e.w * e.mu, 0) -
+        normB.reduce((s, e) => s + e.w * e.mu, 0);
+      const sumSigmaSq =
+        normR.reduce((s, e) => s + (e.w * e.sigma) ** 2, 0) +
+        normB.reduce((s, e) => s + (e.w * e.sigma) ** 2, 0);
+      const effBeta = TRUESKILL_BETA * betaScale;
+      const sumBetaSq =
+        (normR.reduce((s, e) => s + e.w ** 2, 0) + normB.reduce((s, e) => s + e.w ** 2, 0)) *
+        effBeta *
+        effBeta;
+
+      const denom = Math.sqrt(sumBetaSq + sumSigmaSq);
+      if (!(denom > 0)) return null;
+      const redProb = normalCdf(deltaMu / denom);
+      return formatPredictionVerdict(redProb, redScore, blueScore);
+    }
+
     function renderMatchCard(match, idx, isRelativeTime) {
       const matchId = String(match._id || "");
       const mapname = String(match.mapname || "unknown");
@@ -3829,9 +4110,7 @@
       const tsMs = extractTimestampMs(match.time_created);
       const timeDisplay = isRelativeTime ? formatRelativeTime(tsMs) : fullDateFmt.format(new Date(tsMs));
       const fullTimeTitle = tsMs ? fullDateFmt.format(new Date(tsMs)) : "";
-      const durationMs = Math.max(0, (match.map_end_time || 0) - (match.map_start_time || 0));
-      const durationStr = formatDurationMs(durationMs);
-      const mapMinutes = Math.max(1, durationMs / 60000);
+      let durationMs = Math.max(0, (match.map_end_time || 0) - (match.map_start_time || 0));
 
       /* Map client_id -> best demo file entry (deduplicating ns & bookmarks across bot/pug copies) */
       const fileMap = {};
@@ -3869,6 +4148,8 @@
             player_name: preferred.player_name || existing.player_name || file.player_name,
             player_verified:
               preferred.player_verified ?? existing.player_verified ?? file.player_verified,
+            pos_ping_rating:
+              preferred.pos_ping_rating || existing.pos_ping_rating || file.pos_ping_rating,
             ns: mergedNs.length ? mergedNs : undefined,
             bookmarks: mergedBm.length ? mergedBm : undefined,
           });
@@ -3904,12 +4185,33 @@
         }
       }
 
+      /* Normalize pre-map_restart warmup timestamp inflation (mirrors calculate_ranks_v4.py) */
+      if (finalScores) {
+        let maxCtfTimeMs = 0;
+        let maxScoreTimeMs = 0;
+        for (const pl of [...(finalScores.redplayers || []), ...(finalScores.blueplayers || [])]) {
+          if (!pl) continue;
+          const ctfMs = pl.ctfstats?.["time in ms"];
+          if (typeof ctfMs === "number" && ctfMs > maxCtfTimeMs) maxCtfTimeMs = ctfMs;
+          if (typeof pl.time === "number" && pl.time > 0 && pl.time * 60000 > maxScoreTimeMs) {
+            maxScoreTimeMs = pl.time * 60000;
+          }
+        }
+        const maxPlayerMs = maxCtfTimeMs > 0 ? maxCtfTimeMs : maxScoreTimeMs;
+        if (maxPlayerMs > 0 && durationMs > maxPlayerMs * 2) {
+          durationMs = maxPlayerMs;
+        }
+      }
+      const durationStr = formatDurationMs(durationMs);
+      const mapMinutes = Math.max(1, durationMs / 60000);
+
       const redScore = finalScores && "red_score" in finalScores ? Number(finalScores.red_score) : null;
       const blueScore = finalScores && "blue_score" in finalScores ? Number(finalScores.blue_score) : null;
       const hasTeamScores = redScore !== null && blueScore !== null;
 
       const rosters = { red: [], blue: [], free: [], spectator: [] };
-      const ratedTeams = { red: [], blue: [] };
+      const ratedTeamsPosPing = { red: [], blue: [] };
+      let backendPosPingRedProb = null;
       const allHighlights = [];
       const ctfAnalyticsRows = [];
       const seenClients = new Set();
@@ -3942,29 +4244,71 @@
         const canonColored = canonDiffers ? renderQ3Html(rawCanon) : "";
         const displayIdent = canonDiffers ? `${cleanName} (${cleanCanon})` : cleanName;
 
-        /* Pre-match TrueSkill & Updated Elo */
-        let endElo = null;
-        let startElo = null;
-        let eloDelta = null;
-        const ratingObj = isEloBot
+        /* Pre-match TrueSkill & Updated Pos+Ping Elo */
+        const posPingObj = isEloBot
           ? null
-          : (file && file.rating) || (clientMeta && clientMeta.rating) || null;
-        if (ratingObj && ratingObj.start && ratingObj.updated) {
-          startElo = Math.trunc(ratingObj.start.friendly * 100);
-          endElo = Math.trunc(ratingObj.updated.friendly * 100);
-          eloDelta = endElo - startElo;
+          : (file && file.pos_ping_rating) || (clientMeta && clientMeta.pos_ping_rating) || null;
 
-          const rawStart = ratingObj.start.raw;
+        let ppStart = null;
+        let ppEnd = null;
+        let ppDelta = null;
+        let ppEffStart = null;
+        let ppPing = null;
+        let ppPingHandicap = null;
+        let ppRoleOffset = null;
+        if (posPingObj && posPingObj.start && posPingObj.updated) {
+          ppStart = Math.trunc(posPingObj.start.friendly * 100);
+          ppEnd = Math.trunc(posPingObj.updated.friendly * 100);
+          ppDelta = ppEnd - ppStart;
+          if (posPingObj.effective_start && typeof posPingObj.effective_start.friendly === "number") {
+            ppEffStart = Math.trunc(posPingObj.effective_start.friendly * 100);
+          }
+          if (typeof posPingObj.ping === "number") ppPing = posPingObj.ping;
+          if (typeof posPingObj.ping_handicap_elo === "number") ppPingHandicap = posPingObj.ping_handicap_elo;
+          if (typeof posPingObj.role_offset_elo === "number") ppRoleOffset = posPingObj.role_offset_elo;
           if (
-            rawStart &&
-            typeof rawStart.mu === "number" &&
-            typeof rawStart.sigma === "number" &&
+            backendPosPingRedProb === null &&
+            typeof posPingObj.pred_red_prob === "number" &&
+            posPingObj.pred_red_prob > 0 &&
+            posPingObj.pred_red_prob < 1
+          ) {
+            backendPosPingRedProb = posPingObj.pred_red_prob;
+          }
+
+          const effRaw = posPingObj.effective_start?.raw || posPingObj.start.raw;
+          if (
+            effRaw &&
+            typeof effRaw.mu === "number" &&
+            typeof effRaw.sigma === "number" &&
             (teamKey === "red" || teamKey === "blue")
           ) {
             const playedMins = typeof p.time === "number" && p.time > 0 ? p.time : mapMinutes;
             const w = Math.min(1.0, Math.max(0.05, playedMins / mapMinutes));
-            ratedTeams[teamKey].push({ mu: rawStart.mu, sigma: rawStart.sigma, w });
+            ratedTeamsPosPing[teamKey].push({ mu: effRaw.mu, sigma: effRaw.sigma, w });
           }
+        }
+
+        const startElo = ppStart;
+        const endElo = ppEnd;
+        const eloDelta = ppDelta;
+
+        let eloCompareTip = "";
+        if (ppEnd !== null) {
+          const pD = ppDelta >= 0 ? `+${ppDelta}` : `${ppDelta}`;
+          const rolePart =
+            ppRoleOffset !== null && ppRoleOffset !== 0
+              ? ` · Role adj: ${ppRoleOffset > 0 ? `+${ppRoleOffset}` : ppRoleOffset}`
+              : "";
+          const pingPart =
+            ppPing !== null
+              ? ` · Ping (${ppPing}ms): ${ppPingHandicap !== null && ppPingHandicap !== 0 ? (ppPingHandicap > 0 ? `+${ppPingHandicap}` : ppPingHandicap) : "0"}`
+              : "";
+          const effPart = ppEffStart !== null ? ` · In-server eff: ${ppEffStart}` : "";
+          const movPart =
+            posPingObj && typeof posPingObj.mov_mult === "number" && Math.abs(posPingObj.mov_mult - 1.0) >= 0.03
+              ? ` · Margin: ${posPingObj.mov_mult.toFixed(2)}×`
+              : "";
+          eloCompareTip = `Pos+Ping Elo: ${ppStart} → ${ppEnd} (${pD})${rolePart}${pingPart}${effPart}${movPart}`;
         }
 
         /* Demo Playback Action */
@@ -4027,9 +4371,75 @@
         }
 
         const ctf = p.ctfstats || null;
+
+        /* CTF Position Resolution (Offense / Chase / Base / Mid) */
+        const POS_META = {
+          offense: { label: "Offense", short: "Off", icon: "#jk-pos-offense" },
+          chase: { label: "Chase", short: "Cha", icon: "#jk-pos-chase" },
+          base: { label: "Base", short: "Bas", icon: "#jk-pos-base" },
+          mid: { label: "Mid", short: "Mid", icon: "#jk-pos-mid" },
+        };
+        const INT_TO_POS = { 1: "base", 2: "chase", 3: "offense", 4: "mid" };
+
+        let posInfo = null;
+        if (!isEloBot && (teamKey === "red" || teamKey === "blue")) {
+          const cachedPos = (match.positions || {})[cid];
+          if (cachedPos && POS_META[cachedPos.pos]) {
+            posInfo = {
+              pos: cachedPos.pos,
+              swaps: Array.isArray(cachedPos.swaps)
+                ? cachedPos.swaps.filter((s) => POS_META[s])
+                : [],
+              src: cachedPos.src || "server",
+            };
+          } else if (ctf && INT_TO_POS[ctf["final pos"]]) {
+            const fpInt = Number(ctf["final pos"]);
+            const mask = Number(ctf["all pos played"] || 0);
+            const swaps = [];
+            for (const b of [1, 2, 3]) {
+              if (b !== fpInt && (mask & (1 << b))) swaps.push(INT_TO_POS[b]);
+            }
+            posInfo = { pos: INT_TO_POS[fpInt], swaps, src: "server" };
+          }
+        }
+
+        let posBadgeHtml = "";
+        let posPillHtml = `<span class="is-muted-zero">—</span>`;
+        if (posInfo && POS_META[posInfo.pos]) {
+          const meta = POS_META[posInfo.pos];
+          const isInferred = posInfo.src !== "server";
+          const srcLabel =
+            posInfo.src === "server"
+              ? "Server-recorded"
+              : posInfo.src === "ctfstats"
+                ? "Inferred from CTF stats"
+                : "Inferred from match events";
+          const swapNames = posInfo.swaps.map((s) => POS_META[s].label);
+          const swapShort = posInfo.swaps.map((s) => POS_META[s].short);
+          const swapNote = swapNames.length ? ` (also played ${swapNames.join("/")})` : "";
+          const hasZones =
+            ctf &&
+            typeof ctf.fs === "number" &&
+            ctf.fs >= 0 &&
+            typeof ctf.mid === "number" &&
+            ctf.mid >= 0;
+          const zoneNote = hasZones
+            ? ` · Zones: FS ${ctf.fs}% / Base ${ctf.base}% / Mid ${ctf.mid}% / E-Base ${ctf["enemy base"]}% / E-FS ${ctf["enemy fs"]}%`
+            : "";
+          const posTip = `${meta.label}${swapNote} · ${srcLabel}${zoneNote}`;
+          const ariaLbl = swapNames.length
+            ? `${meta.label} (also played ${swapNames.join(", ")})`
+            : meta.label;
+          const cls = `is-${posInfo.pos}${isInferred ? " is-inferred" : ""}`;
+
+          posBadgeHtml = `<span class="pos-badge ${cls}" role="img" aria-label="${esc(ariaLbl)}" title="${esc(posTip)}"><svg width="13" height="13" aria-hidden="true"><use href="${meta.icon}"></use></svg></span>`;
+          posPillHtml = `<span class="ctf-pos-pill ${cls}" title="${esc(posTip)}"><svg width="13" height="13" aria-hidden="true"><use href="${meta.icon}"></use></svg><span class="ctf-pos-pill-lbl">${esc(meta.short)}${swapShort.length ? `<span class="ctf-pos-swap">/${esc(swapShort.join("/"))}</span>` : ""}</span></span>`;
+        }
+
         if (ctf && (teamKey === "red" || teamKey === "blue")) {
           ctfAnalyticsRows.push({
             team: teamKey,
+            posPillHtml,
             cleanName,
             cleanCanon,
             canonDiffers,
@@ -4037,25 +4447,57 @@
             canonColored,
             playerOid,
             score: p.score ?? 0,
-            caps: ctf.captures ?? 0,
-            assists: ctf.assists ?? 0,
-            rets: ctf.rets ?? 0,
+            caps: ctf.captures ?? ctf.cap ?? 0,
+            assists: ctf.assists ?? ctf.ass ?? 0,
+            rets: ctf.rets ?? ctf.ret ?? 0,
             fckil: ctf.fckil ?? 0,
-            defends: ctf.defends ?? 0,
+            defends: ctf.defends ?? ctf.def ?? 0,
             dmg: ctf.dmgdlt ?? ctf.dmg ?? 0,
-            tkn: ctf.tkn ?? 0,
+            tkn: ctf.tkn ?? ctf.dmgtkn ?? 0,
             fcDmg: ctf["fc dmg"] ?? 0,
             clrDmg: ctf["clr dmg"] ?? 0,
-            holdMs: ctf["total hold"] ?? 0,
-            topSpd: ctf["top spd"] ?? 0,
+            holdMs: parseHoldDurationMs(ctf["total hold"] ?? ctf.ttlhold ?? 0),
+            topSpd: ctf["top spd"] ?? ctf.topspd ?? 0,
             te: ctf.TE ?? 0,
             pits: ctf.pits ?? 0,
             airs: ctf.airs ?? 0,
-            acc: ctf.accuracy ?? null,
+            acc: ctf.accuracy ?? ctf.acc ?? null,
           });
         }
 
+        const dmCtf = match.dm_ctf || null;
+        const dmPlayerCtf =
+          !isEloBot &&
+          (teamKey === "red" || teamKey === "blue") &&
+          dmCtf &&
+          dmCtf.players
+            ? dmCtf.players[cid] || null
+            : null;
+
+        const srvCap = ctf ? (ctf.captures ?? ctf.cap) : undefined;
+        const srvRet = ctf ? (ctf.rets ?? ctf.ret) : undefined;
+        let capsNum = null;
+        let retsNum = null;
+        let capRetSrc = null;
+        if (typeof srvCap === "number" || typeof srvRet === "number") {
+          capsNum = typeof srvCap === "number" ? srvCap : null;
+          retsNum = typeof srvRet === "number" ? srvRet : null;
+          capRetSrc = "server";
+        } else if (dmPlayerCtf) {
+          capsNum = typeof dmPlayerCtf.caps === "number" ? dmPlayerCtf.caps : null;
+          retsNum = typeof dmPlayerCtf.rets === "number" ? dmPlayerCtf.rets : null;
+          capRetSrc = "dm_meta";
+        }
+
+        const teamPartial =
+          teamKey === "red"
+            ? Boolean(dmCtf?.red_partial)
+            : teamKey === "blue"
+              ? Boolean(dmCtf?.blue_partial)
+              : Boolean(dmCtf?.partial);
+
         rosters[teamKey].push({
+          posBadgeHtml,
           cleanName,
           cleanCanon,
           canonDiffers,
@@ -4065,8 +4507,12 @@
           startElo,
           endElo,
           eloDelta,
-          capsNum: ctf && typeof ctf.captures === "number" ? ctf.captures : null,
-          retsNum: ctf && typeof ctf.rets === "number" ? ctf.rets : null,
+          eloCompareTip,
+          capsNum,
+          retsNum,
+          capRetSrc,
+          teamPartial,
+          anyPartial: Boolean(dmCtf?.partial),
           score: p.score ?? "—",
           dmgNum: ctf ? (ctf.dmgdlt ?? ctf.dmg ?? null) : null,
           time: p.time ?? "—",
@@ -4119,20 +4565,35 @@
 
       allHighlights.sort((a, b) => a.time - b.time);
 
-      const hasCtfCols = ctfAnalyticsRows.length > 0;
-      const gridCls = hasCtfCols ? "roster-grid-ctf" : "roster-grid-basic";
+      const hasServerCtfCols = ctfAnalyticsRows.length > 0;
+      const hasDmCapRetCols =
+        !hasServerCtfCols &&
+        [...rosters.red, ...rosters.blue].some(
+          (r) => r.capsNum !== null || r.retsNum !== null
+        );
+      const gridCls = hasServerCtfCols
+        ? "roster-grid-ctf"
+        : hasDmCapRetCols
+          ? "roster-grid-ctf-nodmg"
+          : "roster-grid-basic";
       const prediction = hasTeamScores
-        ? computeMatchPrediction(ratedTeams.red, ratedTeams.blue, redScore, blueScore)
+        ? backendPosPingRedProb !== null
+          ? formatPredictionVerdict(backendPosPingRedProb, redScore, blueScore)
+          : computeMatchPrediction(ratedTeamsPosPing.red, ratedTeamsPosPing.blue, redScore, blueScore, 1.22)
         : null;
+      const combinedOddsTooltip = prediction?.tooltip || "";
+
+      const eloHdrLbl = "Elo";
+      const eloHdrTip = "Position & Ping Adjusted Elo (hover any rating for role, ping & margin breakdown)";
 
       const renderTeamHeader = (label) => {
-        if (hasCtfCols) {
+        if (hasServerCtfCols) {
           return `<div class="team-col-header ${gridCls}">
             <span>${esc(label)}</span>
-            <span class="hdr-stat" title="Updated Elo rating">Elo</span>
+            <span class="hdr-stat" title="${esc(eloHdrTip)}">${eloHdrLbl}</span>
             <span class="hdr-stat col-opt-sm" title="Rating change">±</span>
-            <span class="hdr-stat col-opt-md" title="Flag captures">Cap</span>
-            <span class="hdr-stat col-opt-md" title="Flag returns">Ret</span>
+            <span class="hdr-stat col-opt-capret" title="Flag captures">Cap</span>
+            <span class="hdr-stat col-opt-capret" title="Flag returns">Ret</span>
             <span class="hdr-stat" title="Score">Score</span>
             <span class="hdr-stat col-opt-xs" title="Total damage dealt">Dmg</span>
             <span class="hdr-stat col-opt-md" title="Minutes played">Min</span>
@@ -4140,9 +4601,25 @@
             <span class="hdr-stat">Demo</span>
           </div>`;
         }
+        if (hasDmCapRetCols) {
+          const hdrSrcNote = match.dm_ctf?.partial
+            ? "from demo events · partial match coverage"
+            : "from demo events";
+          return `<div class="team-col-header ${gridCls}">
+            <span>${esc(label)}</span>
+            <span class="hdr-stat" title="${esc(eloHdrTip)}">${eloHdrLbl}</span>
+            <span class="hdr-stat col-opt-sm" title="Rating change">±</span>
+            <span class="hdr-stat col-opt-capret" title="Flag captures (${hdrSrcNote})">Cap</span>
+            <span class="hdr-stat col-opt-capret" title="Flag returns (${hdrSrcNote})">Ret</span>
+            <span class="hdr-stat" title="Score">Score</span>
+            <span class="hdr-stat col-opt-md" title="Minutes played">Min</span>
+            <span class="hdr-stat col-opt-sm" title="Ping (ms)">Ping</span>
+            <span class="hdr-stat">Demo</span>
+          </div>`;
+        }
         return `<div class="team-col-header ${gridCls}">
           <span>${esc(label)}</span>
-          <span class="hdr-stat" title="Updated Elo rating">Elo</span>
+          <span class="hdr-stat" title="${esc(eloHdrTip)}">${eloHdrLbl}</span>
           <span class="hdr-stat col-opt-sm" title="Rating change">±</span>
           <span class="hdr-stat" title="Score">Score</span>
           <span class="hdr-stat col-opt-md" title="Minutes played">Min</span>
@@ -4170,42 +4647,74 @@
 
         const eloCell =
           r.endElo !== null
-            ? `<span class="cell-num" title="Elo: ${r.startElo} → ${r.endElo}">${r.endElo}</span>`
+            ? `<span class="cell-num" title="${esc(r.eloCompareTip || `Elo: ${r.startElo} → ${r.endElo}`)}">${r.endElo}</span>`
             : `<span class="cell-num is-muted-zero">—</span>`;
 
         let deltaCell = `<span class="cell-num col-opt-sm is-muted-zero">—</span>`;
         if (r.eloDelta !== null) {
           const signStr = r.eloDelta > 0 ? `+${r.eloDelta}` : `${r.eloDelta}`;
           const dCls = r.eloDelta > 0 ? "is-pos" : r.eloDelta < 0 ? "is-neg" : "";
-          deltaCell = `<span class="cell-num col-opt-sm elo-delta ${dCls}" title="Elo change: ${r.startElo} → ${r.endElo}">${signStr}</span>`;
+          deltaCell = `<span class="cell-num col-opt-sm elo-delta ${dCls}" title="${esc(r.eloCompareTip || `Elo change: ${r.startElo} → ${r.endElo}`)}">${signStr}</span>`;
         }
 
         const fmtScore =
           typeof r.score === "number" ? numFmt.format(r.score) : esc(r.score);
         const minStr = typeof r.time === "number" ? `${r.time}m` : esc(r.time);
 
-        if (hasCtfCols) {
+        if (hasServerCtfCols || hasDmCapRetCols) {
+          const capProv =
+            r.capRetSrc === "dm_meta"
+              ? ` (from demo events${r.teamPartial ? " · partial demo coverage" : ""})`
+              : "";
+          const retProv =
+            r.capRetSrc === "dm_meta"
+              ? ` (from demo events${r.anyPartial ? " · partial demo coverage" : ""})`
+              : "";
+          const capTitle =
+            r.capsNum !== null
+              ? `${r.capsNum} flag capture${r.capsNum === 1 ? "" : "s"}${capProv}`
+              : "";
+          const retTitle =
+            r.retsNum !== null
+              ? `${r.retsNum} flag return${r.retsNum === 1 ? "" : "s"}${retProv}`
+              : "";
+
           const capCell =
             r.capsNum !== null && r.capsNum > 0
-              ? `<span class="cell-num col-opt-md is-highlight" title="${r.capsNum} flag captures">${r.capsNum}</span>`
-              : `<span class="cell-num col-opt-md is-muted-zero">${r.capsNum === 0 ? "·" : "—"}</span>`;
+              ? `<span class="cell-num col-opt-capret is-highlight" title="${esc(capTitle)}">${r.capsNum}</span>`
+              : `<span class="cell-num col-opt-capret is-muted-zero"${capTitle ? ` title="${esc(capTitle)}"` : ""}>${r.capsNum === 0 ? "·" : "—"}</span>`;
           const retCell =
             r.retsNum !== null && r.retsNum > 0
-              ? `<span class="cell-num col-opt-md" title="${r.retsNum} flag returns">${r.retsNum}</span>`
-              : `<span class="cell-num col-opt-md is-muted-zero">${r.retsNum === 0 ? "·" : "—"}</span>`;
-          const dmgCell =
-            r.dmgNum !== null
-              ? `<span class="cell-num col-opt-xs">${numFmt.format(Number(r.dmgNum) || 0)}</span>`
-              : `<span class="cell-num col-opt-xs is-muted-zero">—</span>`;
+              ? `<span class="cell-num col-opt-capret" title="${esc(retTitle)}">${r.retsNum}</span>`
+              : `<span class="cell-num col-opt-capret is-muted-zero"${retTitle ? ` title="${esc(retTitle)}"` : ""}>${r.retsNum === 0 ? "·" : "—"}</span>`;
+
+          if (hasServerCtfCols) {
+            const dmgCell =
+              r.dmgNum !== null
+                ? `<span class="cell-num col-opt-xs">${numFmt.format(Number(r.dmgNum) || 0)}</span>`
+                : `<span class="cell-num col-opt-xs is-muted-zero">—</span>`;
+
+            return `<li class="roster-row ${gridCls} ${r.isDisconnected ? "is-disconnected" : ""}">
+              <div class="player-ident">${r.posBadgeHtml || ""}${nameNode}${discTag}</div>
+              ${eloCell}
+              ${deltaCell}
+              ${capCell}
+              ${retCell}
+              <span class="cell-num is-primary">${fmtScore}</span>
+              ${dmgCell}
+              <span class="cell-num col-opt-md">${minStr}</span>
+              <span class="cell-num col-opt-sm">${esc(r.ping)}</span>
+              <div>${r.actionHtml}</div>
+            </li>`;
+          }
 
           return `<li class="roster-row ${gridCls} ${r.isDisconnected ? "is-disconnected" : ""}">
-            <div class="player-ident">${nameNode}${discTag}</div>
+            <div class="player-ident">${r.posBadgeHtml || ""}${nameNode}${discTag}</div>
             ${eloCell}
             ${deltaCell}
             ${capCell}
             ${retCell}
             <span class="cell-num is-primary">${fmtScore}</span>
-            ${dmgCell}
             <span class="cell-num col-opt-md">${minStr}</span>
             <span class="cell-num col-opt-sm">${esc(r.ping)}</span>
             <div>${r.actionHtml}</div>
@@ -4213,7 +4722,7 @@
         }
 
         return `<li class="roster-row ${gridCls} ${r.isDisconnected ? "is-disconnected" : ""}">
-          <div class="player-ident">${nameNode}${discTag}</div>
+          <div class="player-ident">${r.posBadgeHtml || ""}${nameNode}${discTag}</div>
           ${eloCell}
           ${deltaCell}
           <span class="cell-num is-primary">${fmtScore}</span>
@@ -4228,7 +4737,7 @@
       const analyticsId = `ctf-stats-${esc(matchId)}-${idx}`;
 
       const scoreCenterHtml = hasTeamScores
-        ? `<div class="score-centerpiece" ${prediction ? `title="${esc(prediction.tooltip)}"` : ""}>
+        ? `<div class="score-centerpiece" ${prediction ? `title="${esc(combinedOddsTooltip)}"` : ""}>
             <div class="score-readout" aria-label="Final score: Red ${redScore}, Blue ${blueScore}">
               <span class="score-team-lbl is-red">${redScore > blueScore ? "▲ " : ""}RED</span>
               <span class="score-num is-red ${redScore < blueScore ? "is-loser" : ""}">${redScore}</span>
@@ -4278,6 +4787,7 @@
                 <tr>
                   <th scope="col">Player</th>
                   <th scope="col">Team</th>
+                  <th scope="col">Pos</th>
                   <th scope="col" class="num-col">Score</th>
                   <th scope="col" class="num-col">Cap</th>
                   <th scope="col" class="num-col">Ast</th>
@@ -4309,6 +4819,7 @@
                     return `<tr>
                       <th scope="row">${rowNameHtml}</th>
                       <td style="color:var(--${r.team}-team);font-weight:700;text-transform:uppercase;">${esc(r.team)}</td>
+                      <td>${r.posPillHtml}</td>
                       <td class="num-col">${numFmt.format(r.score)}</td>
                       <td class="num-col">${r.caps}</td>
                       <td class="num-col">${r.assists}</td>
@@ -4494,6 +5005,8 @@
        ======================================================================== */
     async function renderPlayersDirectoryView() {
       const tab = state.playerTab;
+      const sortKey = tab === "new" ? "matches" : state.playerSort === "classic" ? "pos_ping" : state.playerSort || "pos_ping";
+      const poolKey = state.playerPool || "active";
       const rpcName =
         tab === "new" ? "newplayers" : tab === "search" && state.playerQuery ? "searchplayers" : "topplayers";
       const q = new URLSearchParams({
@@ -4501,17 +5014,35 @@
         offset: String(state.offset),
         limit: String(state.limit),
       });
+      if (rpcName !== "newplayers") q.set("sort", sortKey);
+      if (rpcName === "topplayers" && sortKey !== "matches") q.set("pool", poolKey);
       if (rpcName === "searchplayers") q.set("name", state.playerQuery);
 
       const data = await fetchJson(`playerrpc.py?${q.toString()}`);
       const players = data.result || [];
       const total = Number(data.total) || players.length;
 
+      const sortPills = [
+        ["pos_ping", "Pos+Ping Elo"],
+        ["offense", "Offense"],
+        ["chase", "Chase"],
+        ["base", "Base"],
+        ["matches", "Most Matches"],
+      ];
+      const poolPills = [
+        ["active", "Modern Active (150+g)", "150+ rated matches including 25+ in the modern 2021+ era"],
+        ["alltime", "All Eras (150+g)", "150+ rated matches across all archive eras (2015–2026)"],
+        ["all", "All Rated (46+g)", "Includes lower-sample accounts with 46+ matches"],
+      ];
+      const ROLE_SHORT = { offense: "Off", chase: "Cha", base: "Bas", mid: "Mid" };
+      const isRoleSort = ["offense", "chase", "base", "mid"].includes(sortKey);
+      const col2Label = isRoleSort ? `${ROLE_SHORT[sortKey]} Elo` : "Pos+Ping Elo";
+
       viewContainer.innerHTML = `
-        <section class="filter-card" aria-label="Player search">
+        <section class="filter-card" aria-label="Player search" style="display:flex;flex-direction:column;gap:0.65rem;">
           <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem;">
             <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
-              <button type="button" class="btn-secondary ${tab === "top" ? "is-active" : ""}" style="${tab === "top" ? "border-color:var(--accent);background:var(--accent-soft);font-weight:700;" : ""}" data-ptab="top">Top Players</button>
+              <button type="button" class="btn-secondary ${tab === "top" ? "is-active" : ""}" style="${tab === "top" ? "border-color:var(--accent);background:var(--accent-soft);font-weight:700;" : ""}" data-ptab="top">Leaderboard</button>
               <button type="button" class="btn-secondary ${tab === "new" ? "is-active" : ""}" style="${tab === "new" ? "border-color:var(--accent);background:var(--accent-soft);font-weight:700;" : ""}" data-ptab="new">Newest Players</button>
             </div>
             <form id="player-dir-form" style="display:flex;gap:0.4rem;flex:1 1 18rem;max-inline-size:28rem;">
@@ -4520,6 +5051,34 @@
               <button type="submit" class="btn-primary">Find</button>
             </form>
           </div>
+          ${
+            tab !== "new"
+              ? `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.5rem 1rem;padding-block-start:0.45rem;border-block-start:1px solid var(--border-default);">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.35rem;">
+                    <span class="field-label" style="margin-inline-end:0.2rem;">Rank by:</span>
+                    ${sortPills
+                      .map(
+                        ([k, lbl]) =>
+                          `<button type="button" class="chip ${sortKey === k ? "is-active" : ""}" data-psort="${k}">${esc(lbl)}</button>`
+                      )
+                      .join("")}
+                  </div>
+                  ${
+                    rpcName === "topplayers" && sortKey !== "matches"
+                      ? `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.35rem;">
+                          <span class="field-label" style="margin-inline-end:0.2rem;">Pool:</span>
+                          ${poolPills
+                            .map(
+                              ([k, lbl, tip]) =>
+                                `<button type="button" class="chip ${poolKey === k ? "is-active" : ""}" data-ppool="${k}" title="${esc(tip)}">${esc(lbl)}</button>`
+                            )
+                            .join("")}
+                        </div>`
+                      : ""
+                  }
+                </div>`
+              : ""
+          }
         </section>
 
         <div class="feed-toolbar">
@@ -4530,16 +5089,16 @@
           ${buildPaginationHtml(total, state.offset, state.limit)}
         </div>
 
-        <div tabindex="0" role="region" aria-labelledby="players-tbl-cap" class="table-wrapper">
-          <table class="data-table is-stackable" style="--label-2:'Elo Rating';--label-3:'Matches';--label-4:'Play Time';--label-5:'First Seen';--label-6:'Profile';">
-            <caption id="players-tbl-cap">Click any player to inspect Elo history, aliases, highlights, and match demos</caption>
+        <div role="region" aria-labelledby="players-tbl-cap" class="table-wrapper is-page-table">
+          <table class="data-table is-stackable" style="--label-2:'${col2Label}';--label-3:'Med Ping';--label-4:'Matches';--label-5:'Play Time';--label-6:'Profile';">
+            <caption id="players-tbl-cap" class="sr-only">Competitive player ratings directory</caption>
             <thead>
               <tr>
                 <th scope="col">Player</th>
-                <th scope="col" class="num-col">Rating</th>
-                <th scope="col" class="num-col">Matches</th>
+                <th scope="col" class="num-col" ${sortKey === "pos_ping" || isRoleSort ? 'aria-sort="descending"' : ""}>${isRoleSort ? `${ROLE_SHORT[sortKey]} Elo` : "Elo"}</th>
+                <th scope="col" class="num-col" title="Median competitive ping (ms)">Ping</th>
+                <th scope="col" class="num-col" ${sortKey === "matches" ? 'aria-sort="descending"' : ""}>Matches</th>
                 <th scope="col" class="num-col">Play Time</th>
-                <th scope="col">First Seen</th>
                 <th scope="col">Profile</th>
               </tr>
             </thead>
@@ -4551,12 +5110,21 @@
                         const oid = p._id?.$oid || "";
                         const verified = "name" in p;
                         const displayName = p.name || p.last_name || "Unknown";
-                        const elo =
-                          p.rating && "friendly" in p.rating
-                            ? numFmt.format(Math.floor(p.rating.friendly * 100))
-                            : "—";
-                        const oidTs = oid ? parseInt(oid.slice(0, 8), 16) * 1000 : 0;
-                        const firstMs = p.first_game?.$date || oidTs;
+                        const ppr = p.pos_ping_rating || null;
+                        const ppHeadlineVal =
+                          ppr && typeof ppr.friendly === "number"
+                            ? Math.floor(ppr.friendly * 100)
+                            : null;
+                        const roleEntry = isRoleSort && ppr?.roles ? ppr.roles[sortKey] : null;
+                        const shownPPVal =
+                          isRoleSort && roleEntry && typeof roleEntry.friendly === "number"
+                            ? Math.floor(roleEntry.friendly * 100)
+                            : ppHeadlineVal;
+                        const medPing = ppr?.ping_stats?.median_ping ?? null;
+                        const roleGamesNote =
+                          isRoleSort && roleEntry
+                            ? ` <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;">(${Math.round(roleEntry.games)}g)</span>`
+                            : "";
                         return `<tr>
                           <th scope="row">
                             <span style="color:var(--text-muted);font-family:var(--font-mono);margin-inline-end:0.45rem;">#${state.offset + i + 1}</span>
@@ -4564,10 +5132,10 @@
                             ${verified ? `<img src="verified.jpg" alt="Verified player" width="14" height="14" style="vertical-align:middle;margin-inline-start:0.3rem;border-radius:50%;" />` : ""}
                             ${p.enhanced_account ? `<span class="account-pill" style="margin-inline-start:0.35rem;">@${esc(p.enhanced_account)}</span>` : ""}
                           </th>
-                          <td class="num-col"><strong>${elo}</strong></td>
+                          <td class="num-col"><strong style="color:var(--text-primary);">${shownPPVal !== null ? numFmt.format(shownPPVal) : "—"}</strong>${roleGamesNote}</td>
+                          <td class="num-col" style="color:var(--text-muted);">${medPing !== null ? `${medPing}ms` : "—"}</td>
                           <td class="num-col">${numFmt.format(p.num_matches || 0)}</td>
                           <td class="num-col">${esc(formatPlaytimeHours(p.time || 0))}</td>
-                          <td>${firstMs ? esc(fullDateFmt.format(new Date(firstMs))) : "—"}</td>
                           <td><a class="btn-secondary" style="min-block-size:1.75rem;padding:0.15rem 0.6rem;font-size:0.78rem;" href="#view=player&id=${encodeURIComponent(oid)}">View Profile →</a></td>
                         </tr>`;
                       })
@@ -4583,6 +5151,16 @@
       viewContainer.querySelectorAll("[data-ptab]").forEach((btn) => {
         btn.addEventListener("click", () => {
           pushHash({ view: "players", playerTab: btn.dataset.ptab || "top", offset: 0 });
+        });
+      });
+      viewContainer.querySelectorAll("[data-psort]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          pushHash({ view: "players", playerSort: btn.dataset.psort || "pos_ping", offset: 0 });
+        });
+      });
+      viewContainer.querySelectorAll("[data-ppool]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          pushHash({ view: "players", playerPool: btn.dataset.ppool || "active", offset: 0 });
         });
       });
       document.getElementById("player-dir-form")?.addEventListener("submit", (e) => {
@@ -4603,20 +5181,27 @@
       }
     }
 
-    function mountEloChart(canvas, tooltip, points, getLinearMode) {
+    function mountEloChart(canvas, tooltip, points, getOpts) {
       if (!canvas || !points.length) return null;
       const sorted = points.toSorted((a, b) => a.t - b.t);
       let hoverIdx = -1;
 
       const getCoords = (w, h, pad) => {
-        const linear = getLinearMode();
+        const opts = typeof getOpts === "function" ? getOpts() : { linear: false };
+        const linear = Boolean(opts.linear);
         const minT = sorted[0].t;
         const maxT = Math.max(minT + 1, sorted[sorted.length - 1].t);
         let minY = Infinity;
         let maxY = -Infinity;
         for (const p of sorted) {
-          if (p.elo < minY) minY = p.elo;
-          if (p.elo > maxY) maxY = p.elo;
+          if (typeof p.ppElo === "number") {
+            if (p.ppElo < minY) minY = p.ppElo;
+            if (p.ppElo > maxY) maxY = p.ppElo;
+          }
+        }
+        if (!Number.isFinite(minY) || !Number.isFinite(maxY)) {
+          minY = 1000;
+          maxY = 2500;
         }
         const padY = Math.max(25, (maxY - minY) * 0.1);
         minY = Math.floor((minY - padY) / 10) * 10;
@@ -4630,10 +5215,13 @@
             : sorted.length > 1
               ? i / (sorted.length - 1)
               : 0.5;
-          const ry = (p.elo - minY) / Math.max(1, maxY - minY);
+          const ryPP =
+            typeof p.ppElo === "number"
+              ? (p.ppElo - minY) / Math.max(1, maxY - minY)
+              : null;
           return {
             x: pad.l + rx * plotW,
-            y: pad.t + (1 - ry) * plotH,
+            yPP: ryPP !== null ? pad.t + (1 - ryPP) * plotH : null,
             p,
           };
         });
@@ -4651,9 +5239,14 @@
         ctx.scale(dpr, dpr);
 
         const cs = getComputedStyle(document.documentElement);
-        const borderCol = cs.getPropertyValue("--border-default").trim() || "#334155";
-        const mutedCol = cs.getPropertyValue("--text-muted").trim() || "#94a3b8";
-        const accentCol = cs.getPropertyValue("--accent").trim() || "#58a6ff";
+        const schemeProp = cs.colorScheme || "";
+        const isDark =
+          schemeProp === "dark" ||
+          (schemeProp !== "light" && window.matchMedia?.("(prefers-color-scheme: dark)")?.matches);
+        const sfx = isDark ? "dark" : "light";
+        const borderCol = cs.getPropertyValue(`--border-default-${sfx}`).trim() || (isDark ? "#2a3649" : "#cbd5e1");
+        const mutedCol = cs.getPropertyValue(`--text-muted-${sfx}`).trim() || (isDark ? "#8b9bb0" : "#475569");
+        const accentCol = cs.getPropertyValue(`--accent-${sfx}`).trim() || (isDark ? "#58a6ff" : "#1d4ed8");
 
         const w = rect.width;
         const h = rect.height;
@@ -4687,21 +5280,24 @@
         ctx.textAlign = "right";
         ctx.fillText(new Date(sorted[sorted.length - 1].t).toLocaleDateString(), w - pad.r, h - 18);
 
-        /* Area Fill + Line */
-        ctx.beginPath();
-        coords.forEach((c, i) => (i === 0 ? ctx.moveTo(c.x, c.y) : ctx.lineTo(c.x, c.y)));
-        ctx.strokeStyle = accentCol;
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        /* Pos+Ping Elo Area Fill + Primary Line */
+        const ppCoords = coords.filter((c) => c.yPP !== null);
+        if (ppCoords.length > 1) {
+          ctx.beginPath();
+          ppCoords.forEach((c, i) => (i === 0 ? ctx.moveTo(c.x, c.yPP) : ctx.lineTo(c.x, c.yPP)));
+          ctx.strokeStyle = accentCol;
+          ctx.lineWidth = 2;
+          ctx.stroke();
 
-        ctx.lineTo(coords[coords.length - 1].x, pad.t + plotH);
-        ctx.lineTo(coords[0].x, pad.t + plotH);
-        ctx.closePath();
-        const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + plotH);
-        grad.addColorStop(0, "rgba(56, 139, 253, 0.28)");
-        grad.addColorStop(1, "rgba(56, 139, 253, 0.0)");
-        ctx.fillStyle = grad;
-        ctx.fill();
+          ctx.lineTo(ppCoords[ppCoords.length - 1].x, pad.t + plotH);
+          ctx.lineTo(ppCoords[0].x, pad.t + plotH);
+          ctx.closePath();
+          const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + plotH);
+          grad.addColorStop(0, "rgba(56, 139, 253, 0.24)");
+          grad.addColorStop(1, "rgba(56, 139, 253, 0.0)");
+          ctx.fillStyle = grad;
+          ctx.fill();
+        }
 
         /* Hovered point crosshair */
         if (hoverIdx >= 0 && coords[hoverIdx]) {
@@ -4714,10 +5310,12 @@
           ctx.stroke();
           ctx.setLineDash([]);
 
-          ctx.fillStyle = accentCol;
-          ctx.beginPath();
-          ctx.arc(hc.x, hc.y, 4.5, 0, Math.PI * 2);
-          ctx.fill();
+          if (hc.yPP !== null) {
+            ctx.fillStyle = accentCol;
+            ctx.beginPath();
+            ctx.arc(hc.x, hc.yPP, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       };
 
@@ -4745,18 +5343,21 @@
         draw();
         if (tooltip) {
           const item = coords[best].p;
-          const deltaStr = item.delta >= 0 ? `+${item.delta}` : `${item.delta}`;
+          const ppLine =
+            typeof item.ppElo === "number"
+              ? `<div><strong style="color:var(--accent);">Elo ${item.ppElo}</strong> (${item.ppDelta >= 0 ? `+${item.ppDelta}` : item.ppDelta})${item.pos ? ` · ${esc(item.pos[0].toUpperCase() + item.pos.slice(1))}` : ""}${typeof item.ping === "number" ? ` · ${item.ping}ms` : ""}</div>`
+              : "";
           const scLine =
             typeof item.score?.red === "number" && typeof item.score?.blue === "number"
               ? `${item.score.red}–${item.score.blue}`
               : "";
           const mapScoreStr = [item.map || "", scLine].filter(Boolean).join(" · ");
           const metaLine = mapScoreStr
-            ? `<div style="font-family:var(--font-mono);font-size:0.74rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-inline-size:13rem;">${esc(mapScoreStr)}</div>`
+            ? `<div style="font-family:var(--font-mono);font-size:0.74rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-inline-size:15rem;">${esc(mapScoreStr)}</div>`
             : "";
-          tooltip.innerHTML = `<strong>Elo ${item.elo}</strong> (${deltaStr})${metaLine}<div style="color:var(--text-muted);">${esc(fullDateFmt.format(new Date(item.t)))}</div><div style="font-size:0.7rem;color:var(--accent);">Click to open match →</div>`;
+          tooltip.innerHTML = `${ppLine}${metaLine}<div style="color:var(--text-muted);">${esc(fullDateFmt.format(new Date(item.t)))}</div><div style="font-size:0.7rem;color:var(--accent);">Click to open match →</div>`;
           tooltip.hidden = false;
-          const left = Math.min(rect.width - 190, Math.max(8, coords[best].x + 10));
+          const left = Math.min(rect.width - 215, Math.max(8, coords[best].x + 10));
           tooltip.style.insetInlineStart = `${left}px`;
           tooltip.style.insetBlockStart = `12px`;
         }
@@ -4809,26 +5410,54 @@
 
       const rawName = player.name || player.last_name || "Unknown Player";
       const cleanName = stripQ3(rawName) || "Player";
-      const curElo =
-        player.rating && "friendly" in player.rating ? Math.floor(player.rating.friendly * 100) : null;
+      const pprSummary = player.pos_ping_rating || null;
+      const curPosPingElo =
+        pprSummary && typeof pprSummary.friendly === "number"
+          ? Math.floor(pprSummary.friendly * 100)
+          : null;
+      const medPingMs = pprSummary?.ping_stats?.median_ping ?? null;
+      const homePingMs = pprSummary?.ping_stats?.home_ping ?? null;
 
       const chartPoints = (Array.isArray(ratings) ? ratings : [])
         .map((r) => {
           const t = extractTimestampMs(r.time);
-          const startE = Math.floor((r.rating?.start?.friendly || 0) * 100);
-          const endE = Math.floor((r.rating?.updated?.friendly || 0) * 100);
+          const ppr = r.pos_ping_rating || null;
+          const ppStartE =
+            ppr?.start && typeof ppr.start.friendly === "number"
+              ? Math.floor(ppr.start.friendly * 100)
+              : null;
+          const ppEndE =
+            ppr?.updated && typeof ppr.updated.friendly === "number"
+              ? Math.floor(ppr.updated.friendly * 100)
+              : null;
           return {
             t,
-            elo: endE,
-            delta: endE - startE,
+            ppElo: ppEndE,
+            ppDelta: ppStartE !== null && ppEndE !== null ? ppEndE - ppStartE : 0,
+            pos: ppr?.pos || null,
+            ping: typeof ppr?.ping === "number" ? ppr.ping : null,
             match: r._id?.match || "",
             map: r.map || "",
             score: r.score || null,
           };
         })
-        .filter((p) => p.t > 0 && p.elo > 0);
+        .filter((p) => p.t > 0 && typeof p.ppElo === "number" && p.ppElo > 0);
 
-      const peakElo = chartPoints.reduce((mx, p) => Math.max(mx, p.elo), curElo || 0);
+      const peakPosPingElo = chartPoints.reduce(
+        (mx, p) => Math.max(mx, typeof p.ppElo === "number" ? p.ppElo : 0),
+        curPosPingElo || 0
+      );
+
+      const ROLE_CARD_META = [
+        ["offense", "Offense", "#jk-pos-offense"],
+        ["chase", "Chase", "#jk-pos-chase"],
+        ["base", "Base", "#jk-pos-base"],
+        ["mid", "Mid", "#jk-pos-mid"],
+      ];
+      const playedRoleCards = ROLE_CARD_META.filter(([rk]) => {
+        const rg = Number(pprSummary?.roles?.[rk]?.games || 0);
+        return rk === "mid" ? rg >= 1 : rg >= 0.5;
+      });
       const sessions = (player.sessions || []).sort(
         (a, b) => extractTimestampMs(b.last_game) - extractTimestampMs(a.last_game)
       );
@@ -4854,7 +5483,7 @@
               </div>
             </div>
             <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-              <a class="btn-secondary" href="playerrpc.py?rpc=ratings&id=${encodeURIComponent(playerId)}">⬇ Ratings CSV</a>
+              <a class="btn-secondary" href="playerrpc.py?rpc=ratings&elo=pos_ping&id=${encodeURIComponent(playerId)}">⬇ Ratings CSV</a>
               <a class="btn-secondary" href="#view=matches&player=${encodeURIComponent(rawName)}">Search Matches →</a>
             </div>
           </section>
@@ -4890,12 +5519,11 @@
 
           <div class="stat-kpis-grid">
             <div class="stat-card">
-              <div class="stat-card-label">Current Rating</div>
-              <div class="stat-card-value">${curElo !== null ? numFmt.format(curElo) : "Unrated"}</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-card-label">Peak Rating</div>
-              <div class="stat-card-value">${peakElo > 0 ? numFmt.format(peakElo) : "—"}</div>
+              <div class="stat-card-label">Pos+Ping Rating</div>
+              <div class="stat-card-value">${curPosPingElo !== null ? numFmt.format(curPosPingElo) : "Unrated"}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-block-start:0.15rem;font-variant-numeric:tabular-nums;">
+                Peak ${peakPosPingElo > 0 ? numFmt.format(peakPosPingElo) : "—"}${medPingMs !== null ? ` · Med ${medPingMs}ms` : ""}${homePingMs !== null ? ` (Home ${homePingMs}ms)` : ""}
+              </div>
             </div>
             <div class="stat-card">
               <div class="stat-card-label">Rated Matches</div>
@@ -4908,14 +5536,45 @@
           </div>
 
           ${
+            playedRoleCards.length
+              ? `<section aria-label="Per-position Elo ratings" class="role-kpis-grid">
+                  ${playedRoleCards
+                    .map(([rk, rLabel, rIcon]) => {
+                      const rObj = pprSummary.roles[rk];
+                      const rElo = Math.floor(rObj.friendly * 100);
+                      const off = Number(rObj.offset_elo || 0);
+                      const offCls = off > 0 ? "is-pos" : off < 0 ? "is-neg" : "";
+                      const offStr = off > 0 ? `+${off}` : `${off}`;
+                      return `<div class="role-kpi-card">
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                          <span class="pos-badge is-${rk}" role="img" aria-label="${esc(rLabel)}"><svg width="13" height="13" aria-hidden="true"><use href="${rIcon}"></use></svg></span>
+                          <div>
+                            <div style="font-weight:700;font-size:0.84rem;">${esc(rLabel)}</div>
+                            <div style="font-size:0.73rem;color:var(--text-muted);font-variant-numeric:tabular-nums;">${numFmt.format(Math.round(rObj.games))} rated games</div>
+                          </div>
+                        </div>
+                        <div style="text-align:end;font-family:var(--font-mono);font-variant-numeric:tabular-nums;">
+                          <div style="font-weight:700;font-size:1.02rem;">${numFmt.format(rElo)}</div>
+                          <div class="elo-delta ${offCls}" style="font-size:0.74rem;" title="Role offset vs player baseline">${offStr} role</div>
+                        </div>
+                      </div>`;
+                    })
+                    .join("")}
+                </section>`
+              : ""
+          }
+
+          ${
             chartPoints.length > 1
               ? `<section class="chart-panel" aria-label="Elo rating history">
                   <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.5rem;">
-                    <strong style="font-size:0.95rem;">Elo Rating Progression (${numFmt.format(chartPoints.length)} matches — click any point to inspect match)</strong>
-                    <label class="check-label" style="min-block-size:1.85rem;padding:0.15rem 0.55rem;font-size:0.78rem;" for="elo-linear-toggle">
-                      <input type="checkbox" id="elo-linear-toggle" class="visually-hidden-fallback" />
-                      <span>Linear Calendar Scale</span>
-                    </label>
+                    <strong style="font-size:0.95rem;">Elo Progression (${numFmt.format(chartPoints.length)} matches)</strong>
+                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.4rem;">
+                      <label class="check-label" style="min-block-size:1.85rem;padding:0.15rem 0.55rem;font-size:0.76rem;" for="elo-linear-toggle">
+                        <input type="checkbox" id="elo-linear-toggle" class="visually-hidden-fallback" />
+                        <span>Linear Time</span>
+                      </label>
+                    </div>
                   </div>
                   <div class="chart-canvas-wrap">
                     <canvas id="elo-canvas"></canvas>
@@ -5081,13 +5740,12 @@
         const canvas = document.getElementById("elo-canvas");
         const tooltip = document.getElementById("elo-tooltip");
         const linearChk = document.getElementById("elo-linear-toggle");
-        state.activeEloChart = mountEloChart(
-          canvas,
-          tooltip,
-          chartPoints,
-          () => Boolean(linearChk?.checked)
-        );
-        linearChk?.addEventListener("change", () => state.activeEloChart?.draw());
+        state.activeEloChart = mountEloChart(canvas, tooltip, chartPoints, () => ({
+          linear: Boolean(linearChk?.checked),
+        }));
+        linearChk?.addEventListener("change", () => {
+          state.activeEloChart?.draw();
+        });
       }
 
       /* Wire Accessible Tablist + beforematch sync */
@@ -5339,9 +5997,10 @@
       const renderPlayerMatchCardHtml = (m, idx) => {
         const mId = m._id?.match || "";
         const ts = extractTimestampMs(m.time);
-        const rStart = m.rating?.rating?.start ? Math.floor(m.rating.rating.start.friendly * 100) : null;
-        const rEnd = m.rating?.rating?.updated ? Math.floor(m.rating.rating.updated.friendly * 100) : null;
-        const delta = rStart !== null && rEnd !== null ? rEnd - rStart : null;
+        const ppr = m.rating?.pos_ping_rating || null;
+        const ppStart = ppr?.start ? Math.floor(ppr.start.friendly * 100) : null;
+        const ppEnd = ppr?.updated ? Math.floor(ppr.updated.friendly * 100) : null;
+        const ppDelta = ppStart !== null && ppEnd !== null ? ppEnd - ppStart : null;
 
         const firstGame = (m.games || [])[0] || {};
         const teamDur = { RED: 0, BLUE: 0 };
@@ -5461,8 +6120,8 @@
                   <a href="#view=match&id=${encodeURIComponent(mId)}" style="font-weight:700;font-family:var(--font-mono);color:var(--text-primary);">${esc(mapGuess || `Match ${mId}`)}</a>
                   ${outcomeBadge}
                   ${
-                    rEnd !== null && delta !== null
-                      ? `<span style="font-family:var(--font-mono);font-size:0.78rem;font-variant-numeric:tabular-nums;color:var(--text-secondary);">${rEnd} <span class="elo-delta ${delta > 0 ? "is-pos" : delta < 0 ? "is-neg" : ""}">${delta > 0 ? `+${delta}` : delta}</span></span>`
+                    ppEnd !== null && ppDelta !== null
+                      ? `<span style="font-family:var(--font-mono);font-size:0.78rem;font-variant-numeric:tabular-nums;color:var(--text-primary);" title="Pos+Ping Elo${ppr?.pos ? ` · ${ppr.pos}` : ""}${typeof ppr?.ping === "number" ? ` · ${ppr.ping}ms` : ""}">Elo ${ppEnd} <span class="elo-delta ${ppDelta > 0 ? "is-pos" : ppDelta < 0 ? "is-neg" : ""}">${ppDelta > 0 ? `+${ppDelta}` : ppDelta}</span></span>`
                       : ""
                   }
                 </div>
